@@ -10,8 +10,8 @@ import android.view.WindowManager;
 
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * FloatingAppHook - Enables floating window support for cloned applications.
@@ -115,19 +115,19 @@ public class FloatingAppHook {
             Method addView = windowManagerImplClass.getDeclaredMethod(
                 "addView", View.class, android.view.ViewGroup.LayoutParams.class);
             
-            Pine.hook(addView, new MethodHook() {
+            XposedBridge.hookMethod(addView, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (!sEnabled) return;
                     
                     try {
-                        Object params = callFrame.args[1];
+                        Object params = param.args[1];
                         if (params instanceof WindowManager.LayoutParams) {
                             WindowManager.LayoutParams layoutParams = (WindowManager.LayoutParams) params;
                             
                             if (shouldMakeFloating(layoutParams)) {
                                 modifyLayoutParamsForFloating(layoutParams);
-                                View view = (View) callFrame.args[0];
+                                View view = (View) param.args[0];
                                 Log.d(TAG, "Modified window params for floating: " + 
                                       (view != null ? view.getClass().getSimpleName() : "null"));
                             }
@@ -143,13 +143,13 @@ public class FloatingAppHook {
                 Method updateViewLayout = windowManagerImplClass.getDeclaredMethod(
                     "updateViewLayout", View.class, android.view.ViewGroup.LayoutParams.class);
                 
-                Pine.hook(updateViewLayout, new MethodHook() {
+                XposedBridge.hookMethod(updateViewLayout, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame callFrame) {
+                    public void beforeHookedMethod(MethodHookParam param) {
                         if (!sEnabled) return;
                         
                         try {
-                            Object params = callFrame.args[1];
+                            Object params = param.args[1];
                             if (params instanceof WindowManager.LayoutParams) {
                                 WindowManager.LayoutParams layoutParams = (WindowManager.LayoutParams) params;
                                 
@@ -184,9 +184,9 @@ public class FloatingAppHook {
             Method setRequestedOrientation = activityClass.getDeclaredMethod(
                 "setRequestedOrientation", int.class);
             
-            Pine.hook(setRequestedOrientation, new MethodHook() {
+            XposedBridge.hookMethod(setRequestedOrientation, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (!sEnabled) return;
                     // Allow all orientation changes for floating activities
                     Log.d(TAG, "Allowing orientation change for floating activity");
@@ -197,13 +197,13 @@ public class FloatingAppHook {
             Method onWindowFocusChanged = activityClass.getDeclaredMethod(
                 "onWindowFocusChanged", boolean.class);
             
-            Pine.hook(onWindowFocusChanged, new MethodHook() {
+            XposedBridge.hookMethod(onWindowFocusChanged, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     if (!sEnabled) return;
                     
                     try {
-                        Boolean hasFocus = (Boolean) callFrame.args[0];
+                        Boolean hasFocus = (Boolean) param.args[0];
                         if (hasFocus != null) {
                             Log.d(TAG, "Floating activity focus: " + hasFocus);
                         }

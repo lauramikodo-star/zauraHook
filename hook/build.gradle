@@ -16,7 +16,7 @@ android {
 }
 
 dependencies {
-    implementation 'top.canyie.pine:core:0.3.0'
+    implementation "com.aliucord:Aliuhook:1.1.4"
     implementation 'dnsjava:dnsjava:3.5.2'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     compileOnly 'de.robv.android.xposed:api:82'

@@ -9,8 +9,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Hook for spoofing Android device serial number.
@@ -34,11 +34,10 @@ public final class SerialHook {
         // Hook Build.getSerial() method (API 26+)
         try {
             Method m = Build.class.getDeclaredMethod("getSerial");
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeSerial);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeSerial);
                     Log.d(TAG, "Serial spoofed (getSerial) " + orig + " → " + sFakeSerial);
                 }
             });

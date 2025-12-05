@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /** Intercepts every URL & POST body flowing through any WebView and
  *  applies user-defined regex rules. */
@@ -99,14 +99,14 @@ public final class WebViewFilterHook {
         Method m1 = WebView.class.getDeclaredMethod("loadUrl", String.class);
         Method m2 = WebView.class.getDeclaredMethod("loadUrl", String.class, Map.class);
 
-        MethodHook hook = new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame f) {
-                String in = (String) f.args[0];
+        XC_MethodHook hook = new XC_MethodHook() {
+            @Override public void beforeHookedMethod(MethodHookParam param) {
+                String in = (String) param.args[0];
                 for (Rule r : rules) {
                     if (r.urlPat != null && r.urlPat.matcher(in).find()) {
                         if (r.urlBlock) {
                             Log.d(TAG, "Blocked URL: " + in);
-                            f.setResult(null);   // cancel load
+                            param.setResult(null);   // cancel load
                             return;
                         }
                         if (r.urlRepl != null) {
@@ -114,40 +114,40 @@ public final class WebViewFilterHook {
                                     .replaceAll(r.urlRepl);
                             if (r.urlEncode) out = Uri.encode(out);
                             Log.d(TAG, "Rewrote URL: " + in + " -> " + out);
-                            f.args[0] = out;
+                            param.args[0] = out;
                             in = out;  // keep testing next rules on new URL
                         }
                     }
                 }
             }
         };
-        Pine.hook(m1, hook);
-        Pine.hook(m2, hook);
+        XposedBridge.hookMethod(m1, hook);
+        XposedBridge.hookMethod(m2, hook);
     }
 
     private void hookPostUrl(List<Rule> rules) throws Exception {
         Method post = WebView.class.getDeclaredMethod("postUrl", String.class, byte[].class);
-        Pine.hook(post, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame f) {
+        XposedBridge.hookMethod(post, new XC_MethodHook() {
+            @Override public void beforeHookedMethod(MethodHookParam param) {
                 /* 1. Treat URL part exactly like loadUrl */
-                String url = (String) f.args[0];
+                String url = (String) param.args[0];
                 for (Rule r : rules) {
                     if (r.urlPat != null && r.urlPat.matcher(url).find()) {
-                        if (r.urlBlock) { f.setResult(null); return; }
+                        if (r.urlBlock) { param.setResult(null); return; }
                         if (r.urlRepl != null) {
                             String newUrl = r.urlPat.matcher(url).replaceAll(r.urlRepl);
                             if (r.urlEncode) newUrl = Uri.encode(newUrl);
-                            f.args[0] = url = newUrl;
+                            param.args[0] = url = newUrl;
                         }
                     }
                 }
                 /* 2. Work on POST body */
-                byte[] bodyBytes = (byte[]) f.args[1];
+                byte[] bodyBytes = (byte[]) param.args[1];
                 String body = new String(bodyBytes, StandardCharsets.UTF_8);
 
                 for (Rule r : rules) {
                     if (r.dataPat != null && r.dataPat.matcher(body).find()) {
-                        if (r.dataBlock) { f.setResult(null); return; }
+                        if (r.dataBlock) { param.setResult(null); return; }
                         if (r.dataRepl != null) {
                             body = r.dataReplaceAll
                                    ? r.dataPat.matcher(body).replaceAll(r.dataRepl)
@@ -155,7 +155,7 @@ public final class WebViewFilterHook {
                         }
                     }
                 }
-                f.args[1] = body.getBytes(StandardCharsets.UTF_8);
+                param.args[1] = body.getBytes(StandardCharsets.UTF_8);
             }
         });
     }
@@ -167,18 +167,18 @@ public final class WebViewFilterHook {
         Method setClient = WebView.class.getDeclaredMethod(
                 "setWebViewClient", WebViewClient.class);
 
-        Pine.hook(setClient, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame f) {
-                WebViewClient orig = (WebViewClient) f.args[0];
-                f.args[0] = new FilteringClient(orig, rules);
+        XposedBridge.hookMethod(setClient, new XC_MethodHook() {
+            @Override public void beforeHookedMethod(MethodHookParam param) {
+                WebViewClient orig = (WebViewClient) param.args[0];
+                param.args[0] = new FilteringClient(orig, rules);
             }
         });
 
         /* Also patch already-created WebViews (constructor) */
         Constructor<WebView> ctor = WebView.class.getDeclaredConstructor(Context.class);
-        Pine.hook(ctor, new MethodHook() {
-            @Override public void afterCall(Pine.CallFrame cf) {
-                WebView vw = (WebView) cf.thisObject;
+        XposedBridge.hookMethod(ctor, new XC_MethodHook() {
+            @Override public void afterHookedMethod(MethodHookParam param) {
+                WebView vw = (WebView) param.thisObject;
                 vw.setWebViewClient(new FilteringClient(null, rules));
             }
         });

@@ -7,8 +7,8 @@ import android.util.Log;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * UserAgentWorkaroundWarning - Provides workarounds for Firebase-related issues
@@ -36,11 +36,11 @@ public class UserAgentWorkaroundWarning {
         
         try {
             // Create hook for Firebase installations exceptions
-            MethodHook firebaseHook = new MethodHook() {
+            XC_MethodHook firebaseHook = new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame frame) throws Throwable {
+                public void afterHookedMethod(MethodHookParam param) throws Throwable {
                     // Get the exception message if available
-                    Object exception = frame.thisObject;
+                    Object exception = param.thisObject;
                     String message = null;
                     
                     if (exception != null) {
@@ -79,7 +79,7 @@ public class UserAgentWorkaroundWarning {
     /**
      * Hook FirebaseInstallationsException constructors
      */
-    private static void hookFirebaseInstallationsException(MethodHook hook) {
+    private static void hookFirebaseInstallationsException(XC_MethodHook hook) {
         try {
             Class<?> exceptionClass = Class.forName(
                     "com.google.firebase.installations.FirebaseInstallationsException");
@@ -88,7 +88,7 @@ public class UserAgentWorkaroundWarning {
             Constructor<?>[] constructors = exceptionClass.getDeclaredConstructors();
             for (Constructor<?> constructor : constructors) {
                 try {
-                    Pine.hook(constructor, hook);
+                    XposedBridge.hookMethod(constructor, hook);
                     Log.d(TAG, "Hooked FirebaseInstallationsException constructor: " + 
                                constructor.toString());
                 } catch (Throwable t) {
@@ -106,7 +106,7 @@ public class UserAgentWorkaroundWarning {
     /**
      * Hook FirebaseMessagingException (for FCM issues)
      */
-    private static void hookFirebaseMessagingException(MethodHook hook) {
+    private static void hookFirebaseMessagingException(XC_MethodHook hook) {
         try {
             Class<?> exceptionClass = Class.forName(
                     "com.google.firebase.messaging.FirebaseMessagingException");
@@ -114,7 +114,7 @@ public class UserAgentWorkaroundWarning {
             Constructor<?>[] constructors = exceptionClass.getDeclaredConstructors();
             for (Constructor<?> constructor : constructors) {
                 try {
-                    Pine.hook(constructor, hook);
+                    XposedBridge.hookMethod(constructor, hook);
                     Log.d(TAG, "Hooked FirebaseMessagingException constructor");
                 } catch (Throwable t) {
                     // Ignore individual failures
@@ -131,7 +131,7 @@ public class UserAgentWorkaroundWarning {
     /**
      * Hook FirebaseAuthException (for Auth issues)
      */
-    private static void hookFirebaseAuthException(MethodHook hook) {
+    private static void hookFirebaseAuthException(XC_MethodHook hook) {
         try {
             Class<?> exceptionClass = Class.forName(
                     "com.google.firebase.auth.FirebaseAuthException");
@@ -139,7 +139,7 @@ public class UserAgentWorkaroundWarning {
             Constructor<?>[] constructors = exceptionClass.getDeclaredConstructors();
             for (Constructor<?> constructor : constructors) {
                 try {
-                    Pine.hook(constructor, hook);
+                    XposedBridge.hookMethod(constructor, hook);
                     Log.d(TAG, "Hooked FirebaseAuthException constructor");
                 } catch (Throwable t) {
                     // Ignore individual failures
@@ -184,15 +184,15 @@ public class UserAgentWorkaroundWarning {
             Method getInstance = analyticsClass.getMethod("getInstance", 
                     android.content.Context.class);
             
-            Pine.hook(getInstance, new MethodHook() {
+            XposedBridge.hookMethod(getInstance, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     Log.d(TAG, "FirebaseAnalytics.getInstance() called");
                 }
                 
                 @Override
-                public void afterCall(Pine.CallFrame frame) throws Throwable {
-                    if (frame.getResult() == null) {
+                public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.getResult() == null) {
                         Log.w(TAG, "FirebaseAnalytics.getInstance() returned null");
                     }
                 }
@@ -217,13 +217,13 @@ public class UserAgentWorkaroundWarning {
             
             Method getInstance = crashlyticsClass.getMethod("getInstance");
             
-            Pine.hook(getInstance, new MethodHook() {
+            XposedBridge.hookMethod(getInstance, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame frame) throws Throwable {
-                    if (frame.getThrowable() != null) {
+                public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    if (param.getThrowable() != null) {
                         Log.w(TAG, "Crashlytics initialization failed, suppressing");
-                        frame.setThrowable(null);
-                        frame.setResult(null);
+                        param.setThrowable(null);
+                        param.setResult(null);
                     }
                 }
             });

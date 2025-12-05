@@ -11,8 +11,8 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public final class ForcedBackCameraHook {
     private static final String TAG = "ForcedBackCamera";
@@ -75,46 +75,46 @@ public final class ForcedBackCameraHook {
     private static void hookCamera1() {
         try {
             // Don't change camera count - report actual number
-            Pine.hook(Camera.class.getDeclaredMethod("getNumberOfCameras"), new MethodHook() {
+            XposedBridge.hookMethod(Camera.class.getDeclaredMethod("getNumberOfCameras"), new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame cf) {
-                    Integer count = (Integer) cf.getResult();
+                public void afterHookedMethod(MethodHookParam param) {
+                    Integer count = (Integer) param.getResult();
                     if (count != null && count < 2) {
                         // Ensure at least 2 cameras are reported
-                        cf.setResult(2);
+                        param.setResult(2);
                         Log.d(TAG, "Forced camera count to 2");
                     }
                 }
             });
 
             // Hook getCameraInfo - keep front camera info intact
-            Pine.hook(Camera.class.getDeclaredMethod("getCameraInfo", int.class, Camera.CameraInfo.class), 
-                new MethodHook() {
+            XposedBridge.hookMethod(Camera.class.getDeclaredMethod("getCameraInfo", int.class, Camera.CameraInfo.class),
+                new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame cf) {
+                    public void beforeHookedMethod(MethodHookParam param) {
                         // Don't modify - let it report correct info
                         // This allows apps to detect front camera exists
                     }
                 });
 
             // Hook Camera.open(int) - this is where we swap
-            Pine.hook(Camera.class.getDeclaredMethod("open", int.class), new MethodHook() {
+            XposedBridge.hookMethod(Camera.class.getDeclaredMethod("open", int.class), new XC_MethodHook() {
                 private int originalRequestedId = -1;
                 
                 @Override
-                public void beforeCall(Pine.CallFrame cf) {
-                    int requestedId = (int) cf.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    int requestedId = (int) param.args[0];
                     originalRequestedId = requestedId; // Store original request
                     
                     if (requestedId == 1) { // Front camera requested
                         Log.i(TAG, "Camera.open(1) intercepted, will open back camera");
-                        cf.args[0] = 0; // Open back camera instead
+                        param.args[0] = 0; // Open back camera instead
                     }
                 }
                 
                 @Override
-                public void afterCall(Pine.CallFrame cf) {
-                    Camera camera = (Camera) cf.getResult();
+                public void afterHookedMethod(MethodHookParam param) {
+                    Camera camera = (Camera) param.getResult();
                     if (camera != null && originalRequestedId == 1) {
                         // We swapped front to back, remember this
                         CAMERA_MAP.put(camera, 1);
@@ -141,11 +141,11 @@ public final class ForcedBackCameraHook {
                                             "getSupportedVideoSizes"}) {
                 try {
                     Method m = parametersClass.getDeclaredMethod(method);
-                    Pine.hook(m, new MethodHook() {
+                    XposedBridge.hookMethod(m, new XC_MethodHook() {
                         @Override
-                        public void afterCall(Pine.CallFrame cf) {
+                        public void afterHookedMethod(MethodHookParam param) {
                             // Check if this is a swapped camera
-                            Object params = cf.thisObject;
+                            Object params = param.thisObject;
                             // Parameters object is associated with a Camera
                             // This is complex, so we'll leave sizes as-is
                         }
@@ -163,25 +163,25 @@ public final class ForcedBackCameraHook {
     private static void hookCamera2() {
         try {
             // Don't hide cameras in getCameraIdList
-            Pine.hook(CameraManager.class.getDeclaredMethod("getCameraIdList"),
-                new MethodHook() {
+            XposedBridge.hookMethod(CameraManager.class.getDeclaredMethod("getCameraIdList"),
+                new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame cf) {
-                        String[] ids = (String[]) cf.getResult();
+                    public void afterHookedMethod(MethodHookParam param) {
+                        String[] ids = (String[]) param.getResult();
                         // Keep all camera IDs - don't hide any
                         if (ids != null && ids.length < 2) {
                             // Ensure both cameras appear
-                            cf.setResult(new String[]{sBackCameraId, sFrontCameraId});
+                            param.setResult(new String[]{sBackCameraId, sFrontCameraId});
                         }
                     }
                 });
 
             // Keep camera characteristics reporting correct info
             // This allows apps to detect front camera
-            Pine.hook(CameraManager.class.getDeclaredMethod("getCameraCharacteristics", String.class),
-                new MethodHook() {
+            XposedBridge.hookMethod(CameraManager.class.getDeclaredMethod("getCameraCharacteristics", String.class),
+                new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame cf) {
+                    public void afterHookedMethod(MethodHookParam param) {
                         // Don't modify characteristics
                         // Let apps see that front camera exists
                     }
@@ -191,13 +191,13 @@ public final class ForcedBackCameraHook {
             Method openCamera = CameraManager.class.getDeclaredMethod("openCamera", 
                 String.class, CameraDevice.StateCallback.class, android.os.Handler.class);
                 
-            Pine.hook(openCamera, new MethodHook() {
+            XposedBridge.hookMethod(openCamera, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame cf) {
-                    String cameraId = (String) cf.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    String cameraId = (String) param.args[0];
                     if (cameraId.equals(sFrontCameraId)) {
                         Log.i(TAG, "openCamera(front) -> using back camera instead");
-                        cf.args[0] = sBackCameraId;
+                        param.args[0] = sBackCameraId;
                         CAMERA2_MAP.put(sBackCameraId, sFrontCameraId);
                     }
                 }
@@ -209,12 +209,12 @@ public final class ForcedBackCameraHook {
                     String.class, java.util.concurrent.Executor.class, 
                     CameraDevice.StateCallback.class);
                     
-                Pine.hook(openCamera2, new MethodHook() {
+                XposedBridge.hookMethod(openCamera2, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame cf) {
-                        String cameraId = (String) cf.args[0];
+                    public void beforeHookedMethod(MethodHookParam param) {
+                        String cameraId = (String) param.args[0];
                         if (cameraId.equals(sFrontCameraId)) {
-                            cf.args[0] = sBackCameraId;
+                            param.args[0] = sBackCameraId;
                         }
                     }
                 });
@@ -234,13 +234,13 @@ public final class ForcedBackCameraHook {
             Class<?> cameraSelectorBuilder = Class.forName("androidx.camera.core.CameraSelector$Builder");
             Method requireLensFacing = cameraSelectorBuilder.getDeclaredMethod("requireLensFacing", int.class);
             
-            Pine.hook(requireLensFacing, new MethodHook() {
+            XposedBridge.hookMethod(requireLensFacing, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame cf) {
-                    int facing = (int) cf.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    int facing = (int) param.args[0];
                     if (facing == 0) { // LENS_FACING_FRONT
                         Log.i(TAG, "CameraX requireLensFacing(FRONT) -> BACK");
-                        cf.args[0] = 1; // LENS_FACING_BACK
+                        param.args[0] = 1; // LENS_FACING_BACK
                     }
                 }
             });
@@ -251,11 +251,11 @@ public final class ForcedBackCameraHook {
                 Method hasCamera = cameraX.getDeclaredMethod("hasCamera", 
                     Class.forName("androidx.camera.core.CameraSelector"));
                     
-                Pine.hook(hasCamera, new MethodHook() {
+                XposedBridge.hookMethod(hasCamera, new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame cf) {
+                    public void afterHookedMethod(MethodHookParam param) {
                         // Always return true - cameras are available
-                        cf.setResult(true);
+                        param.setResult(true);
                     }
                 });
             } catch (Exception ignore) {}

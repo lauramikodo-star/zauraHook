@@ -7,8 +7,8 @@ import android.util.Log;
 
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Hook for spoofing IMSI (International Mobile Subscriber Identity).
@@ -36,11 +36,10 @@ public class ImsiHook {
         // Hook getSubscriberId() - no parameters version
         try {
             Method m = TelephonyManager.class.getDeclaredMethod("getSubscriberId");
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeImsi);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeImsi);
                     Log.d(TAG, "IMSI spoofed: " + orig + " → " + sFakeImsi);
                 }
             });
@@ -52,11 +51,10 @@ public class ImsiHook {
         // Hook getSubscriberId(int subId) - subscription variant (API 22+)
         try {
             Method m = TelephonyManager.class.getDeclaredMethod("getSubscriberId", int.class);
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeImsi);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeImsi);
                     Log.d(TAG, "IMSI spoofed (subId): " + orig + " → " + sFakeImsi);
                 }
             });

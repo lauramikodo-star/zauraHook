@@ -4,32 +4,32 @@ import android.util.Log;
 
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public class SimplifiedHooking {
     private static final String TAG = "SimplifiedHooking";
 
-    public abstract static class HookCallback extends MethodHook {
+    public abstract static class HookCallback extends XC_MethodHook {
         @Override
-        public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
-            before(callFrame.thisObject, callFrame.args, callFrame);
+        public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+            before(param.thisObject, param.args, param);
         }
 
         @Override
-        public void afterCall(Pine.CallFrame callFrame) throws Throwable {
-            after(callFrame.thisObject, callFrame.args, callFrame);
+        public void afterHookedMethod(MethodHookParam param) throws Throwable {
+            after(param.thisObject, param.args, param);
         }
 
-        public abstract void before(Object thisObject, Object[] args, Pine.CallFrame callFrame) throws Throwable;
+        public abstract void before(Object thisObject, Object[] args, MethodHookParam param) throws Throwable;
 
-        public abstract void after(Object thisObject, Object[] args, Pine.CallFrame callFrame) throws Throwable;
+        public abstract void after(Object thisObject, Object[] args, MethodHookParam param) throws Throwable;
     }
 
     public static void hookMethod(Class<?> clazz, String methodName, HookCallback callback, Class<?>... parameterTypes) {
         try {
             Method method = clazz.getDeclaredMethod(methodName, parameterTypes);
-            Pine.hook(method, callback);
+            XposedBridge.hookMethod(method, callback);
             Log.d(TAG, "Hooked method: " + clazz.getName() + "." + methodName);
         } catch (NoSuchMethodException e) {
             Log.e(TAG, "Method not found: " + clazz.getName() + "." + methodName, e);
