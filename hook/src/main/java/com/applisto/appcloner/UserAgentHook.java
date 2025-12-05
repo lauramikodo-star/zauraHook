@@ -10,8 +10,8 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URLConnection;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public class UserAgentHook {
 
@@ -44,10 +44,10 @@ public class UserAgentHook {
         try {
             // Hook WebView constructor - use Constructor type instead of Method
             Constructor<WebView> webViewConstructor = WebView.class.getDeclaredConstructor(Context.class);
-            Pine.hook(webViewConstructor, new MethodHook() {
+            XposedBridge.hookMethod(webViewConstructor, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame frame) throws Throwable {
-                    WebView webView = (WebView) frame.thisObject;
+                public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    WebView webView = (WebView) param.thisObject;
                     WebSettings settings = webView.getSettings();
                     settings.setUserAgentString(customUserAgent);
                     Log.d(TAG, "Set WebView user agent");
@@ -56,10 +56,10 @@ public class UserAgentHook {
             
             // Hook setUserAgentString to prevent apps from changing it
             Method setUserAgent = WebSettings.class.getDeclaredMethod("setUserAgentString", String.class);
-            Pine.hook(setUserAgent, new MethodHook() {
+            XposedBridge.hookMethod(setUserAgent, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    frame.args[0] = customUserAgent;
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    param.args[0] = customUserAgent;
                     Log.d(TAG, "Intercepted setUserAgentString call");
                 }
             });
@@ -74,11 +74,11 @@ public class UserAgentHook {
             Method setRequestProperty = URLConnection.class.getDeclaredMethod(
                     "setRequestProperty", String.class, String.class);
             
-            Pine.hook(setRequestProperty, new MethodHook() {
+            XposedBridge.hookMethod(setRequestProperty, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    if ("User-Agent".equalsIgnoreCase((String) frame.args[0])) {
-                        frame.args[1] = customUserAgent;
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if ("User-Agent".equalsIgnoreCase((String) param.args[0])) {
+                        param.args[1] = customUserAgent;
                         Log.d(TAG, "Intercepted HttpURLConnection User-Agent");
                     }
                 }
@@ -88,11 +88,11 @@ public class UserAgentHook {
             Method addRequestProperty = URLConnection.class.getDeclaredMethod(
                     "addRequestProperty", String.class, String.class);
             
-            Pine.hook(addRequestProperty, new MethodHook() {
+            XposedBridge.hookMethod(addRequestProperty, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    if ("User-Agent".equalsIgnoreCase((String) frame.args[0])) {
-                        frame.args[1] = customUserAgent;
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if ("User-Agent".equalsIgnoreCase((String) param.args[0])) {
+                        param.args[1] = customUserAgent;
                         Log.d(TAG, "Intercepted HttpURLConnection addRequestProperty User-Agent");
                     }
                 }
@@ -108,11 +108,11 @@ public class UserAgentHook {
             Class<?> requestBuilderClass = Class.forName("okhttp3.Request$Builder");
             Method addHeader = requestBuilderClass.getDeclaredMethod("addHeader", String.class, String.class);
             
-            Pine.hook(addHeader, new MethodHook() {
+            XposedBridge.hookMethod(addHeader, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    if ("User-Agent".equalsIgnoreCase((String) frame.args[0])) {
-                        frame.args[1] = customUserAgent;
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if ("User-Agent".equalsIgnoreCase((String) param.args[0])) {
+                        param.args[1] = customUserAgent;
                         Log.d(TAG, "Intercepted OkHttp User-Agent");
                     }
                 }
@@ -120,11 +120,11 @@ public class UserAgentHook {
             
             // Also hook header() method
             Method header = requestBuilderClass.getDeclaredMethod("header", String.class, String.class);
-            Pine.hook(header, new MethodHook() {
+            XposedBridge.hookMethod(header, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    if ("User-Agent".equalsIgnoreCase((String) frame.args[0])) {
-                        frame.args[1] = customUserAgent;
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    if ("User-Agent".equalsIgnoreCase((String) param.args[0])) {
+                        param.args[1] = customUserAgent;
                         Log.d(TAG, "Intercepted OkHttp header() User-Agent");
                     }
                 }

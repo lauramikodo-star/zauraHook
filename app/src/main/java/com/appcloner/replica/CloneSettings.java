@@ -523,7 +523,6 @@ public class CloneSettings {
             "Samsung", "SM-S928B", "Galaxy S24 Ultra", "samsung",
             "s24ultra", "samsung/s24ultrxx/s24ultra:14/UP1A.231005.007/S928BXXU1AWLM:user/release-keys",
             34, "14", "UP1A.231005.007", "pineapple", "qcom"
-            34, "14", "UP1A.231005.007"
         ));
 
         // Google Pixel 8 Pro
@@ -531,7 +530,6 @@ public class CloneSettings {
             "Google", "Pixel 8 Pro", "Pixel 8 Pro", "google",
             "husky", "google/husky/husky:14/UD1A.231105.004/11010374:user/release-keys",
             34, "14", "UD1A.231105.004", "husky", "husky"
-            34, "14", "UD1A.231105.004"
         ));
 
         // OnePlus 12
@@ -539,14 +537,13 @@ public class CloneSettings {
             "OnePlus", "CPH2573", "OnePlus 12", "oneplus",
             "aston", "OnePlus/CPH2573/OP5913L1:14/UKQ1.230924.001/T.18d1b7f_17e7_19:user/release-keys",
             34, "14", "UKQ1.230924.001", "pineapple", "qcom"
-            34, "14", "UKQ1.230924.001"
         ));
 
         // Xiaomi 14 Pro
         DEVICE_PROFILES.put("xiaomi_14_pro", new DeviceProfile(
             "Xiaomi", "23116PN5BC", "Xiaomi 14 Pro", "xiaomi",
             "shennong", "Xiaomi/shennong/shennong:14/UKQ1.231003.002/V816.0.5.0.UNACNXM:user/release-keys",
-            34, "14", "UKQ1.231003.002"
+            34, "14", "UKQ1.231003.002", "shennong", "qcom"
         ));
 
         // Huawei Mate 60 Pro
@@ -554,7 +551,6 @@ public class CloneSettings {
             "HUAWEI", "ALN-AL00", "HUAWEI Mate 60 Pro", "huawei",
             "ALN", "HUAWEI/ALN-AL00/HWALN:12/HUAWEIALN-AL00/105.0.0.73C00:user/release-keys",
             31, "12", "HUAWEIALN-AL00", "ALN", "kirin9000s"
-            31, "12", "HUAWEIALN-AL00"
         ));
 
         // Sony Xperia 1 V
@@ -562,7 +558,6 @@ public class CloneSettings {
             "Sony", "XQ-DQ72", "Xperia 1 V", "sony",
             "pdx234", "Sony/XQ-DQ72/XQ-DQ72:14/67.2.A.2.118/067002A002011800301508470:user/release-keys",
             34, "14", "67.2.A.2.118", "kalama", "qcom"
-            34, "14", "67.2.A.2.118"
         ));
 
         // OPPO Find X7 Ultra
@@ -570,7 +565,6 @@ public class CloneSettings {
             "OPPO", "PHZ110", "OPPO Find X7 Ultra", "oppo",
             "PHZ110", "OPPO/PHZ110/OP5D3BL1:14/UP1A.231005.007/S.17f2e97_1e89_8:user/release-keys",
             34, "14", "UP1A.231005.007", "pineapple", "qcom"
-            34, "14", "UP1A.231005.007"
         ));
 
         // Vivo X100 Pro
@@ -578,7 +572,6 @@ public class CloneSettings {
             "vivo", "V2324A", "vivo X100 Pro", "vivo",
             "PD2324", "vivo/PD2324/PD2324:14/UP1A.231005.007/compiler11211512:user/release-keys",
             34, "14", "UP1A.231005.007", "k6989v1_64", "mt6989"
-            34, "14", "UP1A.231005.007"
         ));
     }
 
@@ -598,9 +591,6 @@ public class CloneSettings {
         public DeviceProfile(String manufacturer, String model, String product, String brand,
                       String device, String fingerprint, int sdkInt, String release, String displayId,
                       String board, String hardware) {
-
-        public DeviceProfile(String manufacturer, String model, String product, String brand,
-                      String device, String fingerprint, int sdkInt, String release, String displayId) {
             this.manufacturer = manufacturer;
             this.model = model;
             this.product = product;
@@ -612,6 +602,11 @@ public class CloneSettings {
             this.displayId = displayId;
             this.board = board;
             this.hardware = hardware;
+        }
+
+        public DeviceProfile(String manufacturer, String model, String product, String brand,
+                      String device, String fingerprint, int sdkInt, String release, String displayId) {
+            this(manufacturer, model, product, brand, device, fingerprint, sdkInt, release, displayId, "", "");
         }
     }
 

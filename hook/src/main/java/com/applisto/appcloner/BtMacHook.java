@@ -8,8 +8,8 @@ import android.util.Log;
 import java.lang.reflect.Method;
 import java.util.Random;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Hook for spoofing Bluetooth MAC address.
@@ -41,13 +41,12 @@ public final class BtMacHook {
     private void hookGetAddress() {
         try {
             Method m = BluetoothAdapter.class.getDeclaredMethod("getAddress");
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
                     // Only replace if result is not null (i.e. BT is enabled)
                     if (orig != null) {
-                        cf.setResult(sFakeMac);
+                        param.setResult(sFakeMac);
                         Log.d(TAG, "Bluetooth MAC spoofed: " + orig + " → " + sFakeMac);
                     }
                 }
@@ -67,15 +66,14 @@ public final class BtMacHook {
             Method getStringMethod = settingsSecureClass.getDeclaredMethod("getString", 
                     android.content.ContentResolver.class, String.class);
             
-            Pine.hook(getStringMethod, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object[] args = cf.args;
+            XposedBridge.hookMethod(getStringMethod, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object[] args = param.args;
                     if (args.length >= 2 && args[1] != null) {
                         String key = (String) args[1];
                         if ("bluetooth_address".equals(key)) {
-                            Object orig = cf.getResult();
-                            cf.setResult(sFakeMac);
+                            Object orig = param.getResult();
+                            param.setResult(sFakeMac);
                             Log.d(TAG, "Settings.Secure bluetooth_address spoofed: " + orig + " → " + sFakeMac);
                         }
                     }

@@ -32,8 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.SocketFactory;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public final class Socks5ProxyHook {
 
@@ -116,20 +116,20 @@ public final class Socks5ProxyHook {
     private void hookSocketFactory() {
         try {
             Method mSF1 = SocketFactory.class.getDeclaredMethod("createSocket", String.class, int.class);
-            Pine.hook(mSF1, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    String host = (String) frame.args[0];
-                    int    port = (int)    frame.args[1];
-                    frame.setResult(createProxySocket(host, port));
+            XposedBridge.hookMethod(mSF1, new XC_MethodHook() {
+                @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    String host = (String) param.args[0];
+                    int    port = (int)    param.args[1];
+                    param.setResult(createProxySocket(host, port));
                 }
             });
 
             Method mSF2 = SocketFactory.class.getDeclaredMethod("createSocket", InetAddress.class, int.class);
-            Pine.hook(mSF2, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    InetAddress addr = (InetAddress) frame.args[0];
-                    int         port = (int)        frame.args[1];
-                    frame.setResult(createProxySocket(addr.getHostAddress(), port));
+            XposedBridge.hookMethod(mSF2, new XC_MethodHook() {
+                @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    InetAddress addr = (InetAddress) param.args[0];
+                    int         port = (int)        param.args[1];
+                    param.setResult(createProxySocket(addr.getHostAddress(), port));
                 }
             });
 
@@ -145,9 +145,9 @@ public final class Socks5ProxyHook {
         try {
             // Hook new Socket() - the default no-arg constructor
             Constructor<?> c1 = Socket.class.getDeclaredConstructor();
-            Pine.hook(c1, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame frame) throws Throwable {
-                    Socket socket = (Socket) frame.thisObject;
+            XposedBridge.hookMethod(c1, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    Socket socket = (Socket) param.thisObject;
                     // We can't easily change the socket state here to add a proxy.
                     // However, since we set ProxySelector.setDefault,
                     // subsequent socket.connect() calls SHOULD use the proxy selector.
@@ -180,43 +180,43 @@ public final class Socks5ProxyHook {
         try {
             // Hook send
             Method mSend = DatagramSocket.class.getDeclaredMethod("send", DatagramPacket.class);
-            Pine.hook(mSend, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    DatagramSocket socket = (DatagramSocket) frame.thisObject;
+            XposedBridge.hookMethod(mSend, new XC_MethodHook() {
+                @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    DatagramSocket socket = (DatagramSocket) param.thisObject;
                     if (internalDatagramSockets.contains(socket)) return; // Skip internal sockets
 
-                    DatagramPacket packet = (DatagramPacket) frame.args[0];
+                    DatagramPacket packet = (DatagramPacket) param.args[0];
 
                     UdpRelayWorker worker = getOrCreateRelay(socket);
                     if (worker != null) {
                         worker.send(packet);
-                        frame.setResult(null); // prevent original send
+                        param.setResult(null); // prevent original send
                     }
                 }
             });
 
             // Hook receive
             Method mReceive = DatagramSocket.class.getDeclaredMethod("receive", DatagramPacket.class);
-            Pine.hook(mReceive, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    DatagramSocket socket = (DatagramSocket) frame.thisObject;
+            XposedBridge.hookMethod(mReceive, new XC_MethodHook() {
+                @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    DatagramSocket socket = (DatagramSocket) param.thisObject;
                     if (internalDatagramSockets.contains(socket)) return; // Skip internal sockets
 
-                    DatagramPacket packet = (DatagramPacket) frame.args[0];
+                    DatagramPacket packet = (DatagramPacket) param.args[0];
 
                     UdpRelayWorker worker = getOrCreateRelay(socket);
                     if (worker != null) {
                         worker.receive(packet); // Blocks until data available
-                        frame.setResult(null); // prevent original receive
+                        param.setResult(null); // prevent original receive
                     }
                 }
             });
 
             // Hook close to cleanup
             Method mClose = DatagramSocket.class.getDeclaredMethod("close");
-            Pine.hook(mClose, new MethodHook() {
-                 @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                     DatagramSocket socket = (DatagramSocket) frame.thisObject;
+            XposedBridge.hookMethod(mClose, new XC_MethodHook() {
+                 @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                     DatagramSocket socket = (DatagramSocket) param.thisObject;
                      if (internalDatagramSockets.contains(socket)) return;
 
                      UdpRelayWorker worker = udpRelays.remove(socket);
