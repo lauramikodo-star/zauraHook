@@ -48,6 +48,7 @@ public class CloneSettings {
 
     // ===== Build Props / Device Spoofing Settings =====
     public static final boolean DEFAULT_BUILD_PROPS_ENABLED = false;
+    public static final boolean DEFAULT_BUILD_PROPS_HOOK_SYSTEM_PROPERTIES = true;
     public static final String DEFAULT_BUILD_PROPS_DEVICE_PRESET = "";  // e.g., "samsung_s24_ultra", "pixel_8_pro"
     public static final boolean DEFAULT_BUILD_PROPS_RANDOMIZE_FINGERPRINT = false;
     public static final String DEFAULT_BUILD_MANUFACTURER = "";
@@ -84,6 +85,7 @@ public class CloneSettings {
     public static final boolean DEFAULT_RESIZE_IMAGE = false;                  // Resize Picture
     public static final String DEFAULT_FAKE_CAMERA_ROTATION = "NO_CHANGE";     // Rotation (NO_CHANGE default)
     public static final boolean DEFAULT_FAKE_CAMERA_USE_ORIGINAL_IMAGE_FILE = false; // Use Original Image File
+    public static final boolean DEFAULT_FAKE_CAMERA_ADD_SPOOFED_LOCATION = false;
     // Legacy settings kept for compatibility
     public static final boolean DEFAULT_ROTATE_IMAGE = false;
     public static final int DEFAULT_ROTATION_ANGLE = 0;
@@ -107,6 +109,7 @@ public class CloneSettings {
     public static final int DEFAULT_FLOATING_WINDOW_HEIGHT = 1000;
     public static final int DEFAULT_FLOATING_WINDOW_X = 50;
     public static final int DEFAULT_FLOATING_WINDOW_Y = 50;
+    public static final boolean DEFAULT_FLOATING_OVERRIDE_PERMISSION = false;
 
     // ===== Background Media Settings =====
     public static final boolean DEFAULT_BACKGROUND_MEDIA = true;
@@ -121,6 +124,7 @@ public class CloneSettings {
     public static final int DEFAULT_SOCKS_PROXY_PORT = 1080;
     public static final String DEFAULT_SOCKS_PROXY_USER = "";
     public static final String DEFAULT_SOCKS_PROXY_PASS = "";
+    public static final boolean DEFAULT_INTERNAL_BROWSER_ENABLED = false;
 
     // ===== Location Spoofing Settings =====
     public static final boolean DEFAULT_SPOOF_LOCATION = true;
@@ -128,6 +132,8 @@ public class CloneSettings {
     public static final double DEFAULT_SPOOF_LOCATION_LONGITUDE = 2.2945;
     public static final double DEFAULT_SPOOF_LOCATION_ALTITUDE = 35.0;
     public static final double DEFAULT_SPOOF_LOCATION_ACCURACY = 5.0;
+    public static final boolean DEFAULT_SPOOF_LOCATION_RANDOMIZE = false;
+    public static final boolean DEFAULT_SPOOF_LOCATION_USE_IP = false;
 
     // ===== Accessible Data Directory Settings =====
     public static final boolean DEFAULT_ACCESSIBLE_DATA_DIR_INTERNAL_ENABLED = false;
@@ -182,6 +188,7 @@ public class CloneSettings {
 
             // Build Props / Device Spoofing
             json.put("build_props_enabled", DEFAULT_BUILD_PROPS_ENABLED);
+            json.put("build_props_hook_system_properties", DEFAULT_BUILD_PROPS_HOOK_SYSTEM_PROPERTIES);
             json.put("build_props_device_preset", DEFAULT_BUILD_PROPS_DEVICE_PRESET);
             json.put("build_props_randomize_fingerprint", DEFAULT_BUILD_PROPS_RANDOMIZE_FINGERPRINT);
             json.put("build_MANUFACTURER", DEFAULT_BUILD_MANUFACTURER);
@@ -217,6 +224,7 @@ public class CloneSettings {
             json.put("ResizeImage", DEFAULT_RESIZE_IMAGE);
             json.put("FakeCameraRotation", DEFAULT_FAKE_CAMERA_ROTATION);
             json.put("FakeCameraUseOriginalImageFile", DEFAULT_FAKE_CAMERA_USE_ORIGINAL_IMAGE_FILE);
+            json.put("AddSpoofedLocation", DEFAULT_FAKE_CAMERA_ADD_SPOOFED_LOCATION);
             // Legacy settings for backward compatibility
             json.put("AddExifAttributes", DEFAULT_ADD_EXIF_ATTRIBUTES);
             json.put("ForcedBackCamera", DEFAULT_FORCED_BACK_CAMERA_ENABLED);
@@ -230,6 +238,7 @@ public class CloneSettings {
             json.put("floating_window_height", DEFAULT_FLOATING_WINDOW_HEIGHT);
             json.put("floating_window_x", DEFAULT_FLOATING_WINDOW_X);
             json.put("floating_window_y", DEFAULT_FLOATING_WINDOW_Y);
+            json.put("floating_override_permission", DEFAULT_FLOATING_OVERRIDE_PERMISSION);
 
             // Background Media
             json.put("background_media", DEFAULT_BACKGROUND_MEDIA);
@@ -244,6 +253,7 @@ public class CloneSettings {
             json.put("socks_proxy_port", DEFAULT_SOCKS_PROXY_PORT);
             json.put("socks_proxy_user", DEFAULT_SOCKS_PROXY_USER);
             json.put("socks_proxy_pass", DEFAULT_SOCKS_PROXY_PASS);
+            json.put("internal_browser", DEFAULT_INTERNAL_BROWSER_ENABLED);
 
             // Location Spoofing
             json.put("SpoofLocation", DEFAULT_SPOOF_LOCATION);
@@ -251,6 +261,8 @@ public class CloneSettings {
             json.put("SpoofLocationLongitude", DEFAULT_SPOOF_LOCATION_LONGITUDE);
             json.put("SpoofLocationAltitude", DEFAULT_SPOOF_LOCATION_ALTITUDE);
             json.put("SpoofLocationAccuracy", DEFAULT_SPOOF_LOCATION_ACCURACY);
+            json.put("SpoofLocationRandomize", DEFAULT_SPOOF_LOCATION_RANDOMIZE);
+            json.put("SpoofLocationUseIp", DEFAULT_SPOOF_LOCATION_USE_IP);
 
             // Accessible Data Directory
             json.put("accessible_data_dir_internal", DEFAULT_ACCESSIBLE_DATA_DIR_INTERNAL_ENABLED);
@@ -661,6 +673,7 @@ public class CloneSettings {
             
             // Build props settings
             case "build_props_enabled": return "Enable Device Spoofing";
+            case "build_props_hook_system_properties": return "Hook System Properties";
             case "build_props_device_preset": return "Device Preset";
             case "build_props_randomize_fingerprint": return "Randomize Fingerprint";
             case "build_MANUFACTURER": return "Manufacturer";
@@ -673,6 +686,7 @@ public class CloneSettings {
             // Display settings
             case "AllowScreenshots": return "Allow Screenshots";
             case "floating_app": return "Floating Window Mode";
+            case "floating_override_permission": return "Override Permission Check";
             
             // Background Media
             case "background_media": return "Background Media";
@@ -706,6 +720,7 @@ public class CloneSettings {
             case "socks_proxy_port": return "Proxy Port";
             case "socks_proxy_user": return "Proxy Username";
             case "socks_proxy_pass": return "Proxy Password";
+            case "internal_browser": return "Enable Internal Browser";
             
             default:
                 // Convert camelCase or snake_case to Title Case
