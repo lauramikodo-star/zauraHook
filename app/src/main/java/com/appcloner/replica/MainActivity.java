@@ -128,12 +128,14 @@ public class MainActivity extends AppCompatActivity {
                 "RandomizeStrength",             // Randomize Picture Strength
                 "ResizeImage",                   // Resize Picture
                 "FakeCameraRotation",            // Rotation
-                "FakeCameraUseOriginalImageFile" // Use Original Image File
+                "FakeCameraUseOriginalImageFile", // Use Original Image File
+                "AddSpoofedLocation"             // Add Spoofed Location to EXIF
         ));
         categories.put("cat_fake_calculator", Arrays.asList("fake_calculator_enabled", "fake_calculator_passcode", "fake_calculator_ask_once"));
         // Build Props category for device spoofing
         categories.put("cat_build_props", Arrays.asList(
                 "build_props_enabled",
+                "build_props_hook_system_properties",
                 "build_props_device_preset",
                 "build_props_randomize_fingerprint",
                 "build_MANUFACTURER",
@@ -146,11 +148,11 @@ public class MainActivity extends AppCompatActivity {
                 "build_HARDWARE"
         ));
         categories.put("cat_location", Arrays.asList("SpoofLocation", "SpoofLocationLatitude", "SpoofLocationLongitude", 
-                "SpoofLocationAltitude", "SpoofLocationAccuracy", "latitude", "longitude"));
+                "SpoofLocationAltitude", "SpoofLocationAccuracy", "SpoofLocationRandomize", "SpoofLocationUseIp", "latitude", "longitude"));
         categories.put("cat_network", Arrays.asList("socks_proxy", "socks_proxy_host", "socks_proxy_port",
-                "socks_proxy_user", "socks_proxy_pass"));
+                "socks_proxy_user", "socks_proxy_pass", "internal_browser"));
         categories.put("cat_display", Arrays.asList("floating_app", "floating_window_width",
-                "floating_window_height", "floating_window_x", "floating_window_y", "AllowScreenshots"));
+                "floating_window_height", "floating_window_x", "floating_window_y", "floating_override_permission", "AllowScreenshots"));
         categories.put("cat_media", Arrays.asList("background_media", "background_media_webview", 
                 "background_media_mediaplayer", "background_media_exoplayer", "background_media_audio_focus"));
         // Data Management category: accessible data dir settings + bundle app data
