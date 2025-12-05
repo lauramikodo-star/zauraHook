@@ -54,8 +54,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ConcurrentHashMap;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public final class FakeCameraHook {
     private static final String TAG = "FakeCameraHook";
@@ -595,18 +595,18 @@ public final class FakeCameraHook {
     private void hookCamera1APIs() throws Exception {
         // Hook Camera.startPreview
         Method startPreviewMethod = Camera.class.getMethod("startPreview");
-        Pine.hook(startPreviewMethod, new MethodHook() {
+        XposedBridge.hookMethod(startPreviewMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
+            public void beforeHookedMethod(MethodHookParam param) {
                 Log.d(TAG, "Camera.startPreview hooked");
             }
         });
 
         // Hook Camera.release
         Method releaseMethod = Camera.class.getMethod("release");
-        Pine.hook(releaseMethod, new MethodHook() {
+        XposedBridge.hookMethod(releaseMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
+            public void beforeHookedMethod(MethodHookParam param) {
                 Log.d(TAG, "Camera.release hooked");
             }
         });
@@ -615,12 +615,12 @@ public final class FakeCameraHook {
         Method takePictureMethod = Camera.class.getMethod("takePicture",
                 ShutterCallback.class, PictureCallback.class, PictureCallback.class);
 
-        Pine.hook(takePictureMethod, new MethodHook() {
+        XposedBridge.hookMethod(takePictureMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
-                Camera camera = (Camera) callFrame.thisObject;
-                ShutterCallback shutterCallback = (ShutterCallback) callFrame.args[0];
-                PictureCallback jpegCallback = (PictureCallback) callFrame.args[2];
+            public void beforeHookedMethod(MethodHookParam param) {
+                Camera camera = (Camera) param.thisObject;
+                ShutterCallback shutterCallback = (ShutterCallback) param.args[0];
+                PictureCallback jpegCallback = (PictureCallback) param.args[2];
 
                 Log.d(TAG, "Camera.takePicture hooked");
 
@@ -685,7 +685,7 @@ public final class FakeCameraHook {
                 });
 
                 // Skip the original method
-                callFrame.setResult(null);
+                param.setResult(null);
             }
         });
     }
@@ -732,10 +732,10 @@ public final class FakeCameraHook {
             }
         }
 
-        Pine.hook(openCameraMethod, new MethodHook() {
+        XposedBridge.hookMethod(openCameraMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
-                String cameraId = (String) callFrame.args[0];
+            public void beforeHookedMethod(MethodHookParam param) {
+                String cameraId = (String) param.args[0];
                 Log.d(TAG, "CameraManager.openCamera hooked for camera: " + cameraId);
             }
         });
@@ -743,9 +743,9 @@ public final class FakeCameraHook {
         try {
             Class<?> cameraDeviceImplClass = Class.forName("android.hardware.camera2.impl.CameraDeviceImpl");
             Method closeMethod = cameraDeviceImplClass.getMethod("close");
-            Pine.hook(closeMethod, new MethodHook() {
+            XposedBridge.hookMethod(closeMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "CameraDeviceImpl.close hooked");
                 }
             });
@@ -757,11 +757,11 @@ public final class FakeCameraHook {
     /* ---------- ImageReader API Hooking ---------- */
     private void hookImageReaderAPIs() throws Exception {
         Method acquireLatestImageMethod = ImageReader.class.getMethod("acquireLatestImage");
-        Pine.hook(acquireLatestImageMethod, new MethodHook() {
+        XposedBridge.hookMethod(acquireLatestImageMethod, new XC_MethodHook() {
             @Override
-            public void afterCall(Pine.CallFrame callFrame) {
+            public void afterHookedMethod(MethodHookParam param) {
                 Log.d(TAG, "ImageReader.acquireLatestImage hooked (afterCall)");
-                Image realImage = (Image) callFrame.getResult();
+                Image realImage = (Image) param.getResult();
                 if (realImage != null) {
                     overwriteImageWithFakeData(realImage);
                 }
@@ -769,11 +769,11 @@ public final class FakeCameraHook {
         });
 
         Method acquireNextImageMethod = ImageReader.class.getMethod("acquireNextImage");
-        Pine.hook(acquireNextImageMethod, new MethodHook() {
+        XposedBridge.hookMethod(acquireNextImageMethod, new XC_MethodHook() {
             @Override
-            public void afterCall(Pine.CallFrame callFrame) {
+            public void afterHookedMethod(MethodHookParam param) {
                 Log.d(TAG, "ImageReader.acquireNextImage hooked (afterCall)");
-                Image realImage = (Image) callFrame.getResult();
+                Image realImage = (Image) param.getResult();
                 if (realImage != null) {
                     overwriteImageWithFakeData(realImage);
                 }
@@ -784,13 +784,13 @@ public final class FakeCameraHook {
         try {
             Method newInstanceMethod = ImageReader.class.getMethod("newInstance", 
                     int.class, int.class, int.class, int.class);
-            Pine.hook(newInstanceMethod, new MethodHook() {
+            XposedBridge.hookMethod(newInstanceMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
-                    int width = (int) callFrame.args[0];
-                    int height = (int) callFrame.args[1];
-                    int format = (int) callFrame.args[2];
-                    int maxImages = (int) callFrame.args[3];
+                public void afterHookedMethod(MethodHookParam param) {
+                    int width = (int) param.args[0];
+                    int height = (int) param.args[1];
+                    int format = (int) param.args[2];
+                    int maxImages = (int) param.args[3];
                     Log.d(TAG, "ImageReader.newInstance: " + width + "x" + height + 
                                ", format=" + ImageUtils.getFormatName(format) + 
                                ", maxImages=" + maxImages);
@@ -805,11 +805,11 @@ public final class FakeCameraHook {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // ImageReader.acquireNextImageNoThrowISE (API 29+)
                 Method acquireNextImageNoThrowMethod = ImageReader.class.getMethod("acquireNextImageNoThrowISE");
-                Pine.hook(acquireNextImageNoThrowMethod, new MethodHook() {
+                XposedBridge.hookMethod(acquireNextImageNoThrowMethod, new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame callFrame) {
+                    public void afterHookedMethod(MethodHookParam param) {
                         Log.d(TAG, "ImageReader.acquireNextImageNoThrowISE hooked (afterCall)");
-                        Image realImage = (Image) callFrame.getResult();
+                        Image realImage = (Image) param.getResult();
                         if (realImage != null) {
                             overwriteImageWithFakeData(realImage);
                         }
@@ -826,10 +826,10 @@ public final class FakeCameraHook {
         // Hook Image.getPlanes to intercept plane data access
         try {
             Method getPlanesMethod = Image.class.getMethod("getPlanes");
-            Pine.hook(getPlanesMethod, new MethodHook() {
+            XposedBridge.hookMethod(getPlanesMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    Image image = (Image) callFrame.thisObject;
+                public void beforeHookedMethod(MethodHookParam param) {
+                    Image image = (Image) param.thisObject;
                     if (image != null) {
                         int format = image.getFormat();
                         Log.d(TAG, "Image.getPlanes called for format: " + 
@@ -847,19 +847,19 @@ public final class FakeCameraHook {
         Method openFileDescriptorMethod = ContentResolver.class.getMethod("openFileDescriptor",
                 Uri.class, String.class, CancellationSignal.class);
 
-        Pine.hook(openFileDescriptorMethod, new MethodHook() {
+        XposedBridge.hookMethod(openFileDescriptorMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
-                Uri uri = (Uri) callFrame.args[0];
+            public void beforeHookedMethod(MethodHookParam param) {
+                Uri uri = (Uri) param.args[0];
                 Log.d(TAG, "ContentResolver.openFileDescriptor hooked for URI: " + uri);
             }
         });
 
         Method openInputStreamMethod = ContentResolver.class.getMethod("openInputStream", Uri.class);
-        Pine.hook(openInputStreamMethod, new MethodHook() {
+        XposedBridge.hookMethod(openInputStreamMethod, new XC_MethodHook() {
             @Override
-            public void beforeCall(Pine.CallFrame callFrame) {
-                Uri uri = (Uri) callFrame.args[0];
+            public void beforeHookedMethod(MethodHookParam param) {
+                Uri uri = (Uri) param.args[0];
                 Log.d(TAG, "ContentResolver.openInputStream hooked for URI: " + uri);
                 
                 if (isCameraImageUri(uri)) {
@@ -873,26 +873,26 @@ public final class FakeCameraHook {
     private void hookVideoRecordingAPIs() throws Exception {
         try {
             Method startMethod = MediaRecorder.class.getMethod("start");
-            Pine.hook(startMethod, new MethodHook() {
+            XposedBridge.hookMethod(startMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "MediaRecorder.start hooked - starting video recording");
                 }
             });
             
             Method stopMethod = MediaRecorder.class.getMethod("stop");
-            Pine.hook(stopMethod, new MethodHook() {
+            XposedBridge.hookMethod(stopMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "MediaRecorder.stop hooked - video recording stopped");
                 }
             });
             
             Method setOutputFileMethod = MediaRecorder.class.getMethod("setOutputFile", String.class);
-            Pine.hook(setOutputFileMethod, new MethodHook() {
+            XposedBridge.hookMethod(setOutputFileMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    String path = (String) callFrame.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    String path = (String) param.args[0];
                     Log.d(TAG, "MediaRecorder.setOutputFile hooked: " + path);
                 }
             });
@@ -907,9 +907,9 @@ public final class FakeCameraHook {
             Class<?> surfaceTextureClass = Class.forName("android.graphics.SurfaceTexture");
             
             Method updateTexImageMethod = surfaceTextureClass.getMethod("updateTexImage");
-            Pine.hook(updateTexImageMethod, new MethodHook() {
+            XposedBridge.hookMethod(updateTexImageMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     if (sSystemCameraWorkaroundActive) {
                         Log.d(TAG, "System camera workaround: Simulating successful updateTexImage");
                     }
@@ -917,11 +917,11 @@ public final class FakeCameraHook {
             });
             
             Method getTransformMatrixMethod = surfaceTextureClass.getMethod("getTransformMatrix", float[].class);
-            Pine.hook(getTransformMatrixMethod, new MethodHook() {
+            XposedBridge.hookMethod(getTransformMatrixMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     if (sSystemCameraWorkaroundActive) {
-                        float[] matrix = (float[]) callFrame.args[0];
+                        float[] matrix = (float[]) param.args[0];
                         if (matrix != null && matrix.length >= 16) {
                             for (int i = 0; i < 16; i++) {
                                 matrix[i] = (i % 5 == 0) ? 1.0f : 0.0f;
@@ -953,12 +953,12 @@ public final class FakeCameraHook {
         try {
             Method decodeByteArrayMethod = BitmapFactory.class.getMethod("decodeByteArray", 
                     byte[].class, int.class, int.class);
-            Pine.hook(decodeByteArrayMethod, new MethodHook() {
+            XposedBridge.hookMethod(decodeByteArrayMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     // Only intercept during active camera capture
                     if (isFakeCameraActive()) {
-                        byte[] data = (byte[]) callFrame.args[0];
+                        byte[] data = (byte[]) param.args[0];
                         // Check if this looks like camera JPEG data
                         if (data != null && data.length > 2 && 
                             data[0] == (byte) 0xFF && data[1] == (byte) 0xD8) {
@@ -966,7 +966,7 @@ public final class FakeCameraHook {
                             // Optionally replace with fake bitmap
                             Bitmap fakeBitmap = getCurrentFakeImage();
                             if (fakeBitmap != null) {
-                                Bitmap result = (Bitmap) callFrame.getResult();
+                                Bitmap result = (Bitmap) param.getResult();
                                 if (result != null) {
                                     // If dimensions match roughly, consider replacing
                                     float widthRatio = (float) result.getWidth() / fakeBitmap.getWidth();
@@ -990,18 +990,18 @@ public final class FakeCameraHook {
     private void hookLowLevelCameraAPIs() throws Exception {
         try {
             Method nativeSetupMethod = Camera.class.getDeclaredMethod("native_setup", Object.class);
-            Pine.hook(nativeSetupMethod, new MethodHook() {
+            XposedBridge.hookMethod(nativeSetupMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "Camera.native_setup hooked");
                 }
             });
             
             Class<?> cameraServiceClass = Class.forName("android.hardware.camera2.CameraManager$CameraServiceBinderDecorator");
             Method binderDecorateMethod = cameraServiceClass.getMethod("decorate", Object.class);
-            Pine.hook(binderDecorateMethod, new MethodHook() {
+            XposedBridge.hookMethod(binderDecorateMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "CameraService binder decorate hooked");
                 }
             });
@@ -1019,10 +1019,10 @@ public final class FakeCameraHook {
             Class<?> packageManagerClass = Class.forName("android.content.pm.PackageManager");
             Method hasSystemFeatureMethod = packageManagerClass.getMethod("hasSystemFeature", String.class);
             
-            Pine.hook(hasSystemFeatureMethod, new MethodHook() {
+            XposedBridge.hookMethod(hasSystemFeatureMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    String feature = (String) callFrame.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    String feature = (String) param.args[0];
                     if (feature != null && 
                         (feature.startsWith("android.hardware.camera") || 
                          feature.contains("camera"))) {
@@ -1039,9 +1039,9 @@ public final class FakeCameraHook {
             Method getMemoryInfoMethod = activityManagerClass.getMethod("getMemoryInfo", 
                 Class.forName("android.app.ActivityManager$MemoryInfo"));
             
-            Pine.hook(getMemoryInfoMethod, new MethodHook() {
+            XposedBridge.hookMethod(getMemoryInfoMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
+                public void afterHookedMethod(MethodHookParam param) {
                     Log.d(TAG, "ActivityManager.getMemoryInfo intercepted");
                 }
             });

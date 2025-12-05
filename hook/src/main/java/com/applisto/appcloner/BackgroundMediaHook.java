@@ -18,8 +18,8 @@ import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * BackgroundMediaHook - Enables media playback to continue when app goes to background.
@@ -191,11 +191,11 @@ public final class BackgroundMediaHook {
         // Fallback: configure when attached to window
         try {
             Method onAttach = View.class.getDeclaredMethod("onAttachedToWindow");
-            Pine.hook(onAttach, new MethodHook() {
+            XposedBridge.hookMethod(onAttach, new XC_MethodHook() {
                 @Override 
-                public void afterCall(Pine.CallFrame frame) {
-                    if (frame.thisObject instanceof WebView) {
-                        configureWebView((WebView) frame.thisObject);
+                public void afterHookedMethod(MethodHookParam param) {
+                    if (param.thisObject instanceof WebView) {
+                        configureWebView((WebView) param.thisObject);
                     }
                 }
             });
@@ -206,12 +206,12 @@ public final class BackgroundMediaHook {
         // Hook onWindowVisibilityChanged to prevent background pauses
         try {
             Method onWvc = WebView.class.getDeclaredMethod("onWindowVisibilityChanged", int.class);
-            Pine.hook(onWvc, new MethodHook() {
+            XposedBridge.hookMethod(onWvc, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
                         // Block visibility change that would pause playback
-                        frame.setResult(null);
+                        param.setResult(null);
                     }
                 }
             });
@@ -222,14 +222,14 @@ public final class BackgroundMediaHook {
         // Hook View.setVisibility to prevent WebView from being hidden
         try {
             Method setVis = View.class.getDeclaredMethod("setVisibility", int.class);
-            Pine.hook(setVis, new MethodHook() {
+            XposedBridge.hookMethod(setVis, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
-                    if (enabled && appInBackground && frame.thisObject instanceof WebView) {
-                        int newVisibility = (Integer) frame.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    if (enabled && appInBackground && param.thisObject instanceof WebView) {
+                        int newVisibility = (Integer) param.args[0];
                         if (newVisibility != View.VISIBLE) {
                             // Block attempts to hide WebView in background
-                            frame.setResult(null);
+                            param.setResult(null);
                         }
                     }
                 }
@@ -245,10 +245,10 @@ public final class BackgroundMediaHook {
     private void hookWebViewConstructor(Class<?>... paramTypes) {
         try {
             Constructor<WebView> ctor = WebView.class.getDeclaredConstructor(paramTypes);
-            Pine.hook(ctor, new MethodHook() {
+            XposedBridge.hookMethod(ctor, new XC_MethodHook() {
                 @Override 
-                public void afterCall(Pine.CallFrame frame) {
-                    configureWebView((WebView) frame.thisObject);
+                public void afterHookedMethod(MethodHookParam param) {
+                    configureWebView((WebView) param.thisObject);
                 }
             });
         } catch (NoSuchMethodException e) {
@@ -293,11 +293,11 @@ public final class BackgroundMediaHook {
         // Hook WebView.onPause
         try {
             Method onPause = WebView.class.getDeclaredMethod("onPause");
-            Pine.hook(onPause, new MethodHook() {
+            XposedBridge.hookMethod(onPause, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
-                        frame.setResult(null);
+                        param.setResult(null);
                         Log.d(TAG, "Blocked WebView.onPause in background");
                     }
                 }
@@ -309,11 +309,11 @@ public final class BackgroundMediaHook {
         // Hook WebView.pauseTimers
         try {
             Method pauseTimers = WebView.class.getDeclaredMethod("pauseTimers");
-            Pine.hook(pauseTimers, new MethodHook() {
+            XposedBridge.hookMethod(pauseTimers, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
-                        frame.setResult(null);
+                        param.setResult(null);
                         Log.d(TAG, "Blocked WebView.pauseTimers in background");
                     }
                 }
@@ -340,9 +340,9 @@ public final class BackgroundMediaHook {
         // Hook release() - be more careful with this one
         try {
             Method release = mediaPlayerClass.getDeclaredMethod("release");
-            Pine.hook(release, new MethodHook() {
+            XposedBridge.hookMethod(release, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
                         // Only log but allow release to proceed to prevent memory leaks
                         Log.d(TAG, "MediaPlayer.release called in background");
@@ -360,11 +360,11 @@ public final class BackgroundMediaHook {
     private void hookMediaPlayerMethod(Class<?> mpClass, String methodName) {
         try {
             Method method = mpClass.getDeclaredMethod(methodName);
-            Pine.hook(method, new MethodHook() {
+            XposedBridge.hookMethod(method, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
-                        frame.setResult(null);
+                        param.setResult(null);
                         Log.d(TAG, "Blocked MediaPlayer." + methodName + " in background");
                     }
                 }
@@ -429,19 +429,19 @@ public final class BackgroundMediaHook {
                 method = playerClass.getDeclaredMethod(methodName);
             }
             
-            Pine.hook(method, new MethodHook() {
+            XposedBridge.hookMethod(method, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (!enabled || !appInBackground) return;
                     
-                    String name = frame.method.getName();
+                    String name = param.method.getName();
                     switch (name) {
                         case "setPlayWhenReady":
                             // If trying to set playWhenReady to false, force it to true
-                            if (frame.args != null && frame.args.length == 1 && 
-                                frame.args[0] instanceof Boolean) {
-                                if (!((Boolean) frame.args[0])) {
-                                    frame.args[0] = true;
+                            if (param.args != null && param.args.length == 1 &&
+                                param.args[0] instanceof Boolean) {
+                                if (!((Boolean) param.args[0])) {
+                                    param.args[0] = true;
                                     Log.d(TAG, "Forced setPlayWhenReady(true) in background");
                                 }
                             }
@@ -450,7 +450,7 @@ public final class BackgroundMediaHook {
                         case "pause":
                         case "stop":
                             // Block pause/stop in background
-                            frame.setResult(null);
+                            param.setResult(null);
                             Log.d(TAG, "Blocked Player." + name + " in background");
                             break;
                     }
@@ -492,12 +492,12 @@ public final class BackgroundMediaHook {
                 int.class, 
                 int.class
             );
-            Pine.hook(requestFocus, new MethodHook() {
+            XposedBridge.hookMethod(requestFocus, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
                         // Always grant audio focus in background
-                        frame.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                        param.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
                     }
                 }
             });
@@ -511,12 +511,12 @@ public final class BackgroundMediaHook {
                 "abandonAudioFocus", 
                 AudioManager.OnAudioFocusChangeListener.class
             );
-            Pine.hook(abandonFocus, new MethodHook() {
+            XposedBridge.hookMethod(abandonFocus, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
                         // Pretend we successfully abandoned focus but don't actually do it
-                        frame.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                        param.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
                     }
                 }
             });
@@ -535,11 +535,11 @@ public final class BackgroundMediaHook {
                 "requestAudioFocus", 
                 AudioFocusRequest.class
             );
-            Pine.hook(requestFocus, new MethodHook() {
+            XposedBridge.hookMethod(requestFocus, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
-                        frame.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                        param.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
                     }
                 }
             });
@@ -553,11 +553,11 @@ public final class BackgroundMediaHook {
                 "abandonAudioFocusRequest", 
                 AudioFocusRequest.class
             );
-            Pine.hook(abandonFocus, new MethodHook() {
+            XposedBridge.hookMethod(abandonFocus, new XC_MethodHook() {
                 @Override 
-                public void beforeCall(Pine.CallFrame frame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     if (enabled && appInBackground) {
-                        frame.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+                        param.setResult(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
                     }
                 }
             });

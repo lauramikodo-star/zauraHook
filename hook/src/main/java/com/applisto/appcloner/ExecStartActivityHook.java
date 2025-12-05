@@ -13,8 +13,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public abstract class ExecStartActivityHook {
     private static final String TAG = "ExecStartActivityHook";
@@ -47,18 +47,18 @@ public abstract class ExecStartActivityHook {
                     Context.class, IBinder.class, IBinder.class, Activity.class,
                     Intent.class, int.class, Bundle.class);
 
-                Pine.hook(execStartActivityMethod, new MethodHook() {
+                XposedBridge.hookMethod(execStartActivityMethod, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame callFrame) {
+                    public void beforeHookedMethod(MethodHookParam param) {
                         try {
                             ExecStartActivityArgs args = new ExecStartActivityArgs();
-                            args.who = (Context) callFrame.args[0];
-                            args.contextThread = (IBinder) callFrame.args[1];
-                            args.token = (IBinder) callFrame.args[2];
-                            args.target = (Activity) callFrame.args[3];
-                            args.intent = (Intent) callFrame.args[4];
-                            args.requestCode = (Integer) callFrame.args[5];
-                            args.options = (Bundle) callFrame.args[6];
+                            args.who = (Context) param.args[0];
+                            args.contextThread = (IBinder) param.args[1];
+                            args.token = (IBinder) param.args[2];
+                            args.target = (Activity) param.args[3];
+                            args.intent = (Intent) param.args[4];
+                            args.requestCode = (Integer) param.args[5];
+                            args.options = (Bundle) param.args[6];
 
                             Log.i(TAG, "execStartActivity; intent: " + args.intent);
 
@@ -68,7 +68,7 @@ public abstract class ExecStartActivityHook {
                                     // Based on the Smali, if onExecStartActivity returns false, it returns null (suppressing the original call).
                                     // In Pine, we use setResult(null) to suppress the call if we want, or just return.
                                     // But here we might want to return a dummy ActivityResult or just null.
-                                    callFrame.setResult(null);
+                                    param.setResult(null);
                                     return;
                                 }
                             }

@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public final class SpoofLocationHook {
 
@@ -193,8 +193,8 @@ public final class SpoofLocationHook {
     private void hookLocationManager() throws Exception {
         Method m = LocationManager.class.getDeclaredMethod(
                 "requestLocationUpdates", String.class, long.class, float.class, LocationListener.class);
-        Pine.hook(m, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame f) {
+        XposedBridge.hookMethod(m, new XC_MethodHook() {
+            @Override public void beforeHookedMethod(MethodHookParam f) {
                 LocationListener l = (LocationListener) f.args[3];
                 if (l != null) {
                     LISTENERS.add(l);
@@ -208,8 +208,8 @@ public final class SpoofLocationHook {
         Method m2 = LocationManager.class.getDeclaredMethod(
                 "requestLocationUpdates", String.class, long.class, float.class,
                 LocationListener.class, Looper.class);
-        Pine.hook(m2, new MethodHook() {
-            @Override public void beforeCall(Pine.CallFrame f) {
+        XposedBridge.hookMethod(m2, new XC_MethodHook() {
+            @Override public void beforeHookedMethod(MethodHookParam f) {
                 LocationListener l = (LocationListener) f.args[3];
                 if (l != null) {
                     LISTENERS.add(l);
@@ -235,8 +235,8 @@ public final class SpoofLocationHook {
         try {
             Method m = LocationManager.class.getMethod(
                     "registerGnssStatusCallback", GnssStatus.Callback.class);
-            Pine.hook(m, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     GnssStatus.Callback cb = (GnssStatus.Callback) f.args[0];
                     if (cb != null) {
                         // Send fake started event
@@ -254,8 +254,8 @@ public final class SpoofLocationHook {
                         "registerGnssStatusCallback", 
                         java.util.concurrent.Executor.class, 
                         GnssStatus.Callback.class);
-                Pine.hook(m, new MethodHook() {
-                    @Override public void afterCall(Pine.CallFrame f) {
+                XposedBridge.hookMethod(m, new XC_MethodHook() {
+                    @Override public void afterHookedMethod(MethodHookParam f) {
                         GnssStatus.Callback cb = (GnssStatus.Callback) f.args[1];
                         if (cb != null) {
                             cb.onStarted();
@@ -274,8 +274,8 @@ public final class SpoofLocationHook {
     private void hookGpsStatus() {
         try {
             Method m = LocationManager.class.getMethod("addGpsStatusListener", GpsStatus.Listener.class);
-            Pine.hook(m, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     f.setResult(true); // Always succeed
                     GpsStatus.Listener listener = (GpsStatus.Listener) f.args[0];
                     if (listener != null) {
@@ -293,8 +293,8 @@ public final class SpoofLocationHook {
     private void hookLastKnownLocation() {
         try {
             Method m = LocationManager.class.getMethod("getLastKnownLocation", String.class);
-            Pine.hook(m, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     if (!ENABLED) return;
                     // Replace with fake location
                     f.setResult(fakeLocation());
@@ -311,8 +311,8 @@ public final class SpoofLocationHook {
         try {
             // Hook Location.getLatitude()
             Method getLatitude = Location.class.getMethod("getLatitude");
-            Pine.hook(getLatitude, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(getLatitude, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     if (!ENABLED) return;
                     Location loc = (Location) f.thisObject;
                     // Only spoof if this looks like a real GPS location
@@ -328,8 +328,8 @@ public final class SpoofLocationHook {
             
             // Hook Location.getLongitude()
             Method getLongitude = Location.class.getMethod("getLongitude");
-            Pine.hook(getLongitude, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(getLongitude, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     if (!ENABLED) return;
                     Location loc = (Location) f.thisObject;
                     if (isRealGpsLocation(loc)) {
@@ -344,8 +344,8 @@ public final class SpoofLocationHook {
             
             // Hook Location.getAltitude()
             Method getAltitude = Location.class.getMethod("getAltitude");
-            Pine.hook(getAltitude, new MethodHook() {
-                @Override public void afterCall(Pine.CallFrame f) {
+            XposedBridge.hookMethod(getAltitude, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam f) {
                     if (!ENABLED) return;
                     Location loc = (Location) f.thisObject;
                     if (isRealGpsLocation(loc)) {

@@ -38,8 +38,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * WebView URL/data filter with Pine hooks.
@@ -105,109 +105,109 @@ public final class WebViewUrlDataFilterHook {
 
     private static void installHooks() {
         safeHook(getMethod(WebView.class, "loadUrl", String.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String url = (String) frame.args[0];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String url = (String) param.args[0];
                         Action a = applyUrlRules(url);
                         if (a.block) {
                             if (DEBUG) Log.d(TAG, "Blocked loadUrl: " + url);
-                            frame.args[0] = "about:blank";
+                            param.args[0] = "about:blank";
                             return;
                         }
                         if (a.rewritten != null) {
                             if (DEBUG) Log.d(TAG, "Rewrite loadUrl: " + url + " -> " + a.rewritten);
-                            frame.args[0] = a.rewritten;
+                            param.args[0] = a.rewritten;
                         }
                     }
                 });
 
         safeHook(getMethod(WebView.class, "loadUrl", String.class, Map.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String url = (String) frame.args[0];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String url = (String) param.args[0];
                         Action a = applyUrlRules(url);
                         if (a.block) {
                             if (DEBUG) Log.d(TAG, "Blocked loadUrl(headers): " + url);
-                            frame.args[0] = "about:blank";
+                            param.args[0] = "about:blank";
                             return;
                         }
                         if (a.rewritten != null) {
                             if (DEBUG) Log.d(TAG, "Rewrite loadUrl(headers): " + url + " -> " + a.rewritten);
-                            frame.args[0] = a.rewritten;
+                            param.args[0] = a.rewritten;
                         }
                     }
                 });
 
         safeHook(getMethod(WebView.class, "loadData", String.class, String.class, String.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String data = (String) frame.args[0];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String data = (String) param.args[0];
                         Action a = applyDataRules(data);
                         if (a.block) {
                             if (DEBUG) Log.d(TAG, "Blocked loadData");
-                            frame.args[0] = "";
+                            param.args[0] = "";
                             return;
                         }
-                        if (a.rewritten != null) frame.args[0] = a.rewritten;
+                        if (a.rewritten != null) param.args[0] = a.rewritten;
                     }
                 });
 
         safeHook(getMethod(WebView.class, "loadDataWithBaseURL",
                 String.class, String.class, String.class, String.class, String.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String baseUrl = (String) frame.args[0];
-                        String data = (String) frame.args[1];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String baseUrl = (String) param.args[0];
+                        String data = (String) param.args[1];
 
                         // Base URL rules
                         Action au = applyUrlRules(baseUrl);
                         if (au.block) {
                             if (DEBUG) Log.d(TAG, "Blocked loadDataWithBaseURL baseUrl=" + baseUrl);
-                            frame.args[0] = "about:blank";
+                            param.args[0] = "about:blank";
                         } else if (au.rewritten != null) {
                             if (DEBUG) Log.d(TAG, "Rewrite baseUrl: " + baseUrl + " -> " + au.rewritten);
-                            frame.args[0] = au.rewritten;
+                            param.args[0] = au.rewritten;
                         }
 
                         // Data rules
                         Action ad = applyDataRules(data);
                         if (ad.block) {
                             if (DEBUG) Log.d(TAG, "Blocked loadDataWithBaseURL data");
-                            frame.args[1] = "";
+                            param.args[1] = "";
                             return;
                         }
-                        if (ad.rewritten != null) frame.args[1] = ad.rewritten;
+                        if (ad.rewritten != null) param.args[1] = ad.rewritten;
                     }
                 });
 
         safeHook(getMethod(WebView.class, "evaluateJavascript", String.class, ValueCallback.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String js = (String) frame.args[0];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String js = (String) param.args[0];
                         Action a = applyDataRules(js);
                         if (a.block) {
                             if (DEBUG) Log.d(TAG, "Blocked evaluateJavascript");
-                            frame.args[0] = "";
+                            param.args[0] = "";
                             return;
                         }
-                        if (a.rewritten != null) frame.args[0] = a.rewritten;
+                        if (a.rewritten != null) param.args[0] = a.rewritten;
                     }
                 });
 
         safeHook(getMethod(WebView.class, "postUrl", String.class, byte[].class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String url = (String) frame.args[0];
-                        byte[] post = (byte[]) frame.args[1];
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String url = (String) param.args[0];
+                        byte[] post = (byte[]) param.args[1];
 
                         Action au = applyUrlRules(url);
                         if (au.block) {
                             if (DEBUG) Log.d(TAG, "Blocked postUrl: " + url);
-                            frame.args[0] = "about:blank";
-                            frame.args[1] = new byte[0];
+                            param.args[0] = "about:blank";
+                            param.args[1] = new byte[0];
                             return;
                         }
-                        if (au.rewritten != null) frame.args[0] = au.rewritten;
+                        if (au.rewritten != null) param.args[0] = au.rewritten;
 
                         // Try UTF-8 decode; if not valid UTF-8, we leave bytes unchanged.
                         if (post != null && post.length > 0) {
@@ -216,11 +216,11 @@ public final class WebViewUrlDataFilterHook {
                                 Action ad = applyDataRules(body);
                                 if (ad.block) {
                                     if (DEBUG) Log.d(TAG, "Blocked postUrl body");
-                                    frame.args[1] = new byte[0];
+                                    param.args[1] = new byte[0];
                                     return;
                                 }
                                 if (ad.rewritten != null) {
-                                    frame.args[1] = ad.rewritten.getBytes(Charset.forName("UTF-8"));
+                                    param.args[1] = ad.rewritten.getBytes(Charset.forName("UTF-8"));
                                 }
                             } catch (Throwable ignore) {
                                 // binary body; skip rewriting
@@ -231,11 +231,11 @@ public final class WebViewUrlDataFilterHook {
 
         // Wrap any WebViewClient set by the app
         safeHook(getMethod(WebView.class, "setWebViewClient", WebViewClient.class),
-                new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        WebView wv = (WebView) frame.thisObject;
-                        WebViewClient orig = (WebViewClient) frame.args[0];
-                        frame.args[0] = wrapClient(wv.getContext(), orig);
+                new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        WebView wv = (WebView) param.thisObject;
+                        WebViewClient orig = (WebViewClient) param.args[0];
+                        param.args[0] = wrapClient(wv.getContext(), orig);
                     }
                 });
     }
@@ -270,10 +270,10 @@ public final class WebViewUrlDataFilterHook {
             // Hook setServiceWorkerClient as well, to wrap app-provided clients.
             Method m = getMethod(ServiceWorkerController.class, "setServiceWorkerClient", ServiceWorkerClient.class);
             if (m != null) {
-                Pine.hook(m, new MethodHook() {
-                    @Override public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        ServiceWorkerClient orig = (ServiceWorkerClient) frame.args[0];
-                        frame.args[0] = new ServiceWorkerClient() {
+                XposedBridge.hookMethod(m, new XC_MethodHook() {
+                    @Override public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        ServiceWorkerClient orig = (ServiceWorkerClient) param.args[0];
+                        param.args[0] = new ServiceWorkerClient() {
                             @Override public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
                                 try {
                                     // Delegate to ours first
@@ -710,10 +710,10 @@ public final class WebViewUrlDataFilterHook {
         return null;
     }
 
-    private static void safeHook(Method m, MethodHook callback) {
+    private static void safeHook(Method m, XC_MethodHook callback) {
         if (m == null) return;
         try {
-            Pine.hook(m, callback);
+            XposedBridge.hookMethod(m, callback);
         } catch (Throwable t) {
             if (DEBUG) Log.w(TAG, "Hook failed for " + m, t);
         }
