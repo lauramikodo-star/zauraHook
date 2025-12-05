@@ -1,0 +1,24 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.applisto.appcloner'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.applisto.appcloner"
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+dependencies {
+    implementation 'top.canyie.pine:core:0.3.0'
+    implementation 'dnsjava:dnsjava:3.5.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    compileOnly 'de.robv.android.xposed:api:82'
+    implementation 'androidx.core:core:1.10.1'
+}
