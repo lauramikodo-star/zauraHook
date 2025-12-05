@@ -7,8 +7,8 @@ import android.util.Log;
 
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Hook for spoofing IMEI (International Mobile Equipment Identity).
@@ -61,11 +61,10 @@ public final class ImeiHook {
     private void hookMethod(String methodName) {
         try {
             Method m = TelephonyManager.class.getDeclaredMethod(methodName);
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeImei);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeImei);
                     Log.d(TAG, methodName + " spoofed: " + orig + " → " + sFakeImei);
                 }
             });
@@ -80,11 +79,10 @@ public final class ImeiHook {
     private void hookMethodWithInt(String methodName) {
         try {
             Method m = TelephonyManager.class.getDeclaredMethod(methodName, int.class);
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeImei);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeImei);
                     Log.d(TAG, methodName + "(int) spoofed: " + orig + " → " + sFakeImei);
                 }
             });

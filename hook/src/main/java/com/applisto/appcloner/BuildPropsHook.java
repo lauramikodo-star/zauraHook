@@ -18,8 +18,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Enhanced BuildPropsHook that dynamically changes device build properties.
@@ -306,13 +306,13 @@ public final class BuildPropsHook {
             Class<?> systemPropsClass = Class.forName("android.os.SystemProperties");
             
             Method getMethod = systemPropsClass.getMethod("get", String.class);
-            Pine.hook(getMethod, new MethodHook() {
+            XposedBridge.hookMethod(getMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
-                    String key = (String) callFrame.args[0];
+                public void afterHookedMethod(MethodHookParam param) {
+                    String key = (String) param.args[0];
                     if (sPropertyOverrides.containsKey(key)) {
                         String spoofedValue = sPropertyOverrides.get(key);
-                        callFrame.setResult(spoofedValue);
+                        param.setResult(spoofedValue);
                         Log.v(TAG, "Spoofed property: " + key + " = " + spoofedValue);
                     }
                 }
@@ -320,13 +320,13 @@ public final class BuildPropsHook {
             
             // Hook SystemProperties.get(String, String) - with default value
             Method getWithDefaultMethod = systemPropsClass.getMethod("get", String.class, String.class);
-            Pine.hook(getWithDefaultMethod, new MethodHook() {
+            XposedBridge.hookMethod(getWithDefaultMethod, new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
-                    String key = (String) callFrame.args[0];
+                public void afterHookedMethod(MethodHookParam param) {
+                    String key = (String) param.args[0];
                     if (sPropertyOverrides.containsKey(key)) {
                         String spoofedValue = sPropertyOverrides.get(key);
-                        callFrame.setResult(spoofedValue);
+                        param.setResult(spoofedValue);
                         Log.v(TAG, "Spoofed property (with default): " + key + " = " + spoofedValue);
                     }
                 }

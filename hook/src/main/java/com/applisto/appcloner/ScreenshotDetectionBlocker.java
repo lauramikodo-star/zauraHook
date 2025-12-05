@@ -11,8 +11,8 @@ import android.view.WindowManager;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Screenshot bypass using Pine hooking framework directly
@@ -27,9 +27,6 @@ public class ScreenshotDetectionBlocker {
             if (!ClonerSettings.get(context).raw().optBoolean("AllowScreenshots", false)) {
                 return;
             }
-
-            // Initialize Pine
-            Pine.ensureInitialized();
 
             // Hook Window.setFlags
             hookWindowSetFlags();
@@ -59,11 +56,11 @@ public class ScreenshotDetectionBlocker {
         try {
             // public void setRecentsScreenshotEnabled(boolean enabled)
             Method method = Activity.class.getMethod("setRecentsScreenshotEnabled", boolean.class);
-            Pine.hook(method, new MethodHook() {
+            XposedBridge.hookMethod(method, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     // Force argument to true
-                    callFrame.args[0] = true;
+                    param.args[0] = true;
                     Log.d(TAG, "Activity.setRecentsScreenshotEnabled forced to true");
                 }
             });
@@ -73,20 +70,20 @@ public class ScreenshotDetectionBlocker {
     }
 
     private static void hookWindowSetFlags() throws Throwable {
-        Pine.hook(
+        XposedBridge.hookMethod(
             Window.class.getDeclaredMethod("setFlags", int.class, int.class),
-            new MethodHook() {
+            new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    int flags = (int) callFrame.args[0];
-                    int mask = (int) callFrame.args[1];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    int flags = (int) param.args[0];
+                    int mask = (int) param.args[1];
 
                     // Remove FLAG_SECURE
                     flags &= ~FLAG_SECURE;
                     mask &= ~FLAG_SECURE;
 
-                    callFrame.args[0] = flags;
-                    callFrame.args[1] = mask;
+                    param.args[0] = flags;
+                    param.args[1] = mask;
 
                     Log.d(TAG, "Window.setFlags - removed FLAG_SECURE");
                 }
@@ -95,14 +92,14 @@ public class ScreenshotDetectionBlocker {
     }
 
     private static void hookWindowAddFlags() throws Throwable {
-        Pine.hook(
+        XposedBridge.hookMethod(
             Window.class.getDeclaredMethod("addFlags", int.class),
-            new MethodHook() {
+            new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    int flags = (int) callFrame.args[0];
+                public void beforeHookedMethod(MethodHookParam param) {
+                    int flags = (int) param.args[0];
                     flags &= ~FLAG_SECURE;
-                    callFrame.args[0] = flags;
+                    param.args[0] = flags;
 
                     Log.d(TAG, "Window.addFlags - removed FLAG_SECURE");
                 }
@@ -115,37 +112,37 @@ public class ScreenshotDetectionBlocker {
         Class<?> layoutParamsClass = WindowManager.LayoutParams.class;
 
         // Constructor with no args
-        Pine.hook(
+        XposedBridge.hookMethod(
             layoutParamsClass.getDeclaredConstructor(),
-            new MethodHook() {
+            new XC_MethodHook() {
                 @Override
-                public void afterCall(Pine.CallFrame callFrame) {
-                    clearSecureFlagFromParams(callFrame.thisObject); // Fixed: thisObject instead of thisObj
+                public void afterHookedMethod(MethodHookParam param) {
+                    clearSecureFlagFromParams(param.thisObject);
                 }
             }
         );
 
         // Constructor with flags
-        Pine.hook(
+        XposedBridge.hookMethod(
             layoutParamsClass.getDeclaredConstructor(int.class, int.class),
-            new MethodHook() {
+            new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    int flags = (int) callFrame.args[1];
-                    callFrame.args[1] = flags & ~FLAG_SECURE;
+                public void beforeHookedMethod(MethodHookParam param) {
+                    int flags = (int) param.args[1];
+                    param.args[1] = flags & ~FLAG_SECURE;
                 }
             }
         );
     }
 
     private static void hookSurfaceViewSetSecure() throws Throwable {
-        Pine.hook(
+        XposedBridge.hookMethod(
             SurfaceView.class.getDeclaredMethod("setSecure", boolean.class),
-            new MethodHook() {
+            new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
+                public void beforeHookedMethod(MethodHookParam param) {
                     // Always set to false (not secure)
-                    callFrame.args[0] = false;
+                    param.args[0] = false;
                     Log.d(TAG, "SurfaceView.setSecure forced to false");
                 }
             }

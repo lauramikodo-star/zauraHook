@@ -8,8 +8,8 @@ import android.util.Log;
 
 import java.lang.reflect.Method;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 public class AndroidIdHook {
 
@@ -36,13 +36,13 @@ public class AndroidIdHook {
             Method target = settingsClass.getDeclaredMethod(
                     "getString", ContentResolver.class, String.class);
 
-            Pine.hook(target, new MethodHook() {
+            XposedBridge.hookMethod(target, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                    String key = (String) frame.args[1];
+                public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    String key = (String) param.args[1];
                     if (Settings.Secure.ANDROID_ID.equals(key)) {
                         Log.d(TAG, "Returning fake ANDROID_ID for " + settingsClass.getSimpleName() + ": " + fakeId);
-                        frame.setResult(fakeId);
+                        param.setResult(fakeId);
                     }
                 }
             });

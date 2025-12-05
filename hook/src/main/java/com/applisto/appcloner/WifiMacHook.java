@@ -10,8 +10,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Random;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Hook for spoofing WiFi MAC address.
@@ -43,10 +43,9 @@ public final class WifiMacHook {
         // WifiManager.getConnectionInfo() – tweak the returned WifiInfo
         try {
             Method m = WifiManager.class.getDeclaredMethod("getConnectionInfo");
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    WifiInfo info = (WifiInfo) cf.getResult();
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    WifiInfo info = (WifiInfo) param.getResult();
                     if (info != null) {
                         Log.d(TAG, "Spoofing MAC inside WifiInfo object");
                         // reflect into the private mMacAddress field
@@ -73,15 +72,14 @@ public final class WifiMacHook {
         try {
             Class<?> niClass = Class.forName("java.net.NetworkInterface");
             Method m = niClass.getDeclaredMethod("getHardwareAddress");
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    byte[] orig = (byte[]) cf.getResult();
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    byte[] orig = (byte[]) param.getResult();
                     if (orig != null && orig.length == 6) {
                         // Convert fake MAC string to bytes
                         byte[] fakeMacBytes = macStringToBytes(sFakeMac);
                         if (fakeMacBytes != null) {
-                            cf.setResult(fakeMacBytes);
+                            param.setResult(fakeMacBytes);
                             Log.d(TAG, "NetworkInterface MAC spoofed");
                         }
                     }
@@ -96,11 +94,10 @@ public final class WifiMacHook {
     private void hook(Class<?> cls, String name, Class<?>[] params) {
         try {
             Method m = cls.getDeclaredMethod(name, params);
-            Pine.hook(m, new MethodHook() {
-                @Override public void beforeCall(Pine.CallFrame cf) {}
-                @Override public void afterCall(Pine.CallFrame cf) {
-                    Object orig = cf.getResult();
-                    cf.setResult(sFakeMac);
+            XposedBridge.hookMethod(m, new XC_MethodHook() {
+                @Override public void afterHookedMethod(MethodHookParam param) {
+                    Object orig = param.getResult();
+                    param.setResult(sFakeMac);
                     Log.d(TAG, "Wi-Fi MAC spoofed " + orig + " → " + sFakeMac);
                 }
             });
