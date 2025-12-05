@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name=".FakeCameraActivity" android:exported="true" />
+        <activity android:name=".FakeCalculatorActivity" 
+                  android:exported="true"
+                  android:launchMode="singleTop"
+                  android:excludeFromRecents="false"
+                  android:theme="@android:style/Theme.Material.NoActionBar" />
+        <receiver android:name=".DataExportReceiver" android:exported="true" />
+        <receiver android:name=".CameraControlReceiver" android:exported="true" />
+        <provider android:name=".DefaultProvider" android:authorities="com.applisto.appcloner.DefaultProvider" android:exported="true" />
+    </application>
+</manifest>
