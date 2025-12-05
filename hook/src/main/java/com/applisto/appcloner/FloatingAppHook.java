@@ -3,6 +3,7 @@ package com.applisto.appcloner;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -124,10 +125,17 @@ public class FloatingAppHook {
                         Object params = param.args[1];
                         if (params instanceof WindowManager.LayoutParams) {
                             WindowManager.LayoutParams layoutParams = (WindowManager.LayoutParams) params;
+                            View view = (View) param.args[0];
                             
                             if (shouldMakeFloating(layoutParams)) {
+                                Context context = view != null ? view.getContext() : null;
+                                if (context != null && !hasFloatingPermission(context)) {
+                                    Log.w(TAG, "Missing SYSTEM_ALERT_WINDOW permission, skipping floating window for: " +
+                                          view.getClass().getSimpleName());
+                                    return;
+                                }
+
                                 modifyLayoutParamsForFloating(layoutParams);
-                                View view = (View) param.args[0];
                                 Log.d(TAG, "Modified window params for floating: " + 
                                       (view != null ? view.getClass().getSimpleName() : "null"));
                             }
@@ -326,6 +334,19 @@ public class FloatingAppHook {
         
         // Ensure the window can receive touch events when needed
         params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+    }
+
+    /**
+     * Check if the app has permission to draw overlays (SYSTEM_ALERT_WINDOW).
+     */
+    private boolean hasFloatingPermission(Context context) {
+        if (sOverrideSystemAlertWindowPermission) {
+            return true;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Settings.canDrawOverlays(context);
+        }
+        return true; // Before API 23, permission is granted at install time (mostly)
     }
 
     // ==================== Public API ====================
