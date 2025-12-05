@@ -129,7 +129,8 @@ public class DefaultProvider extends AbstractContentProvider {
             Log.e(TAG, "Failed to install UserAgentWorkaroundWarning", t);
         }
 
-        
+        return true;
+    }
 
     // IPC permission for secure operations
     private static final String IPC_PERMISSION = "com.appcloner.replica.permission.REPLICA_IPC";
