@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">App Cloner</string>
+    <string name="select_apk">Select APK</string>
+    <string name="process_apk">Process APK</string>
+    <string name="select_an_apk">Select an APK</string>
+    <string name="app_icon">App icon</string>
+    <string name="menu">Menu</string>
+    <string name="signing_note_title">Important: APK Signing Note</string>
+    <string name="signing_note_message">If the cloned app shows \"App not installed\" or \"App appears to be corrupted\" errors, you may need to re-sign it with a signing tool like:\n\n• APK Editor Pro\n• MT Manager\n• NP Manager\n• Apktool M\n\nThis app uses a generic debug signature which may be blocked by some device security features or app stores.</string>
+    <string name="signing_note_dont_show">Don\'t show again</string>
+</resources>
