@@ -10,8 +10,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.concurrent.atomic.AtomicReference;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * UserAgentWorkaround - Hooks HTTP connections to modify User-Agent headers
@@ -143,17 +143,17 @@ public class UserAgentWorkaround {
                 Method setRequestProperty = URLConnection.class.getDeclaredMethod(
                         "setRequestProperty", String.class, String.class);
                 
-                Pine.hook(setRequestProperty, new MethodHook() {
+                XposedBridge.hookMethod(setRequestProperty, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String key = (String) frame.args[0];
-                        String value = (String) frame.args[1];
+                    public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String key = (String) param.args[0];
+                        String value = (String) param.args[1];
                         
                         if (key != null && value != null) {
                             // Process the header value
                             AtomicReference<String> valueRef = new AtomicReference<>(value);
                             onHeader(key, valueRef);
-                            frame.args[1] = valueRef.get();
+                            param.args[1] = valueRef.get();
                         }
                     }
                 });
@@ -162,16 +162,16 @@ public class UserAgentWorkaround {
                 Method addRequestProperty = URLConnection.class.getDeclaredMethod(
                         "addRequestProperty", String.class, String.class);
                 
-                Pine.hook(addRequestProperty, new MethodHook() {
+                XposedBridge.hookMethod(addRequestProperty, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame frame) throws Throwable {
-                        String key = (String) frame.args[0];
-                        String value = (String) frame.args[1];
+                    public void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        String key = (String) param.args[0];
+                        String value = (String) param.args[1];
                         
                         if (key != null && value != null) {
                             AtomicReference<String> valueRef = new AtomicReference<>(value);
                             onHeader(key, valueRef);
-                            frame.args[1] = valueRef.get();
+                            param.args[1] = valueRef.get();
                         }
                     }
                 });
@@ -216,11 +216,11 @@ public class UserAgentWorkaround {
                 // Hook URL.openConnection
                 Method openConnection = URL.class.getDeclaredMethod("openConnection");
                 
-                Pine.hook(openConnection, new MethodHook() {
+                XposedBridge.hookMethod(openConnection, new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame frame) throws Throwable {
-                        URLConnection connection = (URLConnection) frame.getResult();
-                        URL url = (URL) frame.thisObject;
+                    public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        URLConnection connection = (URLConnection) param.getResult();
+                        URL url = (URL) param.thisObject;
                         
                         if (connection != null && url != null) {
                             AtomicReference<String> urlRef = new AtomicReference<>(url.toString());
@@ -248,11 +248,11 @@ public class UserAgentWorkaround {
                 // Hook getResponseCode to track HTTP responses
                 Method getResponseCode = HttpURLConnection.class.getDeclaredMethod("getResponseCode");
                 
-                Pine.hook(getResponseCode, new MethodHook() {
+                XposedBridge.hookMethod(getResponseCode, new XC_MethodHook() {
                     @Override
-                    public void afterCall(Pine.CallFrame frame) throws Throwable {
-                        HttpURLConnection conn = (HttpURLConnection) frame.thisObject;
-                        Integer responseCode = (Integer) frame.getResult();
+                    public void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        HttpURLConnection conn = (HttpURLConnection) param.thisObject;
+                        Integer responseCode = (Integer) param.getResult();
                         
                         // Track response codes for debugging
                         if (responseCode != null && responseCode >= 400) {
@@ -275,18 +275,18 @@ public class UserAgentWorkaround {
                 // Hook url(String) method
                 Method urlMethod = requestBuilderClass.getDeclaredMethod("url", String.class);
                 
-                Pine.hook(urlMethod, new MethodHook() {
+                XposedBridge.hookMethod(urlMethod, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame frame) throws Throwable {
+                    public void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         if (sOnUriStringDisabled.get()) return;
                         
-                        String url = (String) frame.args[0];
+                        String url = (String) param.args[0];
                         if (url != null) {
                             AtomicReference<String> urlRef = new AtomicReference<>(url);
                             onUriString(urlRef);
                             
                             if (!TextUtils.equals(url, urlRef.get())) {
-                                frame.args[0] = urlRef.get();
+                                param.args[0] = urlRef.get();
                             }
                         }
                     }
@@ -296,19 +296,19 @@ public class UserAgentWorkaround {
                 try {
                     Method urlUrlMethod = requestBuilderClass.getDeclaredMethod("url", URL.class);
                     
-                    Pine.hook(urlUrlMethod, new MethodHook() {
+                    XposedBridge.hookMethod(urlUrlMethod, new XC_MethodHook() {
                         @Override
-                        public void beforeCall(Pine.CallFrame frame) throws Throwable {
+                        public void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             if (sOnUriStringDisabled.get()) return;
                             
-                            URL url = (URL) frame.args[0];
+                            URL url = (URL) param.args[0];
                             if (url != null) {
                                 AtomicReference<String> urlRef = new AtomicReference<>(url.toString());
                                 onUriString(urlRef);
                                 
                                 String newUrl = urlRef.get();
                                 if (!TextUtils.equals(url.toString(), newUrl)) {
-                                    frame.args[0] = new URL(newUrl);
+                                    param.args[0] = new URL(newUrl);
                                 }
                             }
                         }
@@ -356,19 +356,19 @@ public class UserAgentWorkaround {
                 Class<?> uriClass = android.net.Uri.class;
                 Method parseMethod = uriClass.getDeclaredMethod("parse", String.class);
                 
-                Pine.hook(parseMethod, new MethodHook() {
+                XposedBridge.hookMethod(parseMethod, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame frame) throws Throwable {
+                    public void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         if (sOnUriStringDisabled.get()) return;
                         
-                        String uriString = (String) frame.args[0];
+                        String uriString = (String) param.args[0];
                         if (uriString != null && shouldProcessUri(uriString)) {
                             AtomicReference<String> uriRef = new AtomicReference<>(uriString);
                             onUriString(uriRef);
                             
                             String newUri = uriRef.get();
                             if (!TextUtils.equals(uriString, newUri)) {
-                                frame.args[0] = newUri;
+                                param.args[0] = newUri;
                                 Log.d(TAG, "URI scheme modified: " + uriString + " -> " + newUri);
                             }
                         }
@@ -390,18 +390,18 @@ public class UserAgentWorkaround {
                 Class<?> intentClass = android.content.Intent.class;
                 Method parseUriMethod = intentClass.getDeclaredMethod("parseUri", String.class, int.class);
                 
-                Pine.hook(parseUriMethod, new MethodHook() {
+                XposedBridge.hookMethod(parseUriMethod, new XC_MethodHook() {
                     @Override
-                    public void beforeCall(Pine.CallFrame frame) throws Throwable {
+                    public void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         if (sOnUriStringDisabled.get()) return;
                         
-                        String uri = (String) frame.args[0];
+                        String uri = (String) param.args[0];
                         if (uri != null) {
                             AtomicReference<String> uriRef = new AtomicReference<>(uri);
                             onUriString(uriRef);
                             
                             if (!TextUtils.equals(uri, uriRef.get())) {
-                                frame.args[0] = uriRef.get();
+                                param.args[0] = uriRef.get();
                             }
                         }
                     }

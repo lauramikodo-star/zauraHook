@@ -1,6 +1,5 @@
 package com.applisto.appcloner;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -20,8 +19,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodHook;
+import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XposedBridge;
 
 /**
  * Powerful Dialog Intercept and Blocker Hook
@@ -136,10 +135,10 @@ public final class DialogInterceptHook {
     private void hookAlertDialogShow() {
         try {
             Method showMethod = AlertDialog.class.getDeclaredMethod("show");
-            Pine.hook(showMethod, new MethodHook() {
+            XposedBridge.hookMethod(showMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    AlertDialog dialog = (AlertDialog) callFrame.thisObject;
+                public void beforeHookedMethod(MethodHookParam param) {
+                    AlertDialog dialog = (AlertDialog) param.thisObject;
                     if (shouldBlockDialog(dialog)) {
                         Log.i(TAG, "Blocking AlertDialog");
                         // Try to auto-click a dismiss button
@@ -150,7 +149,7 @@ public final class DialogInterceptHook {
                             } catch (Exception ignored) {}
                         }
                         // Prevent the dialog from showing
-                        callFrame.setResult(null);
+                        param.setResult(null);
                     }
                 }
             });
@@ -163,10 +162,10 @@ public final class DialogInterceptHook {
     private void hookDialogShow() {
         try {
             Method showMethod = Dialog.class.getDeclaredMethod("show");
-            Pine.hook(showMethod, new MethodHook() {
+            XposedBridge.hookMethod(showMethod, new XC_MethodHook() {
                 @Override
-                public void beforeCall(Pine.CallFrame callFrame) {
-                    Dialog dialog = (Dialog) callFrame.thisObject;
+                public void beforeHookedMethod(MethodHookParam param) {
+                    Dialog dialog = (Dialog) param.thisObject;
                     // Skip AlertDialog (already handled)
                     if (dialog instanceof AlertDialog) {
                         return;
@@ -176,7 +175,7 @@ public final class DialogInterceptHook {
                         try {
                             dialog.dismiss();
                         } catch (Exception ignored) {}
-                        callFrame.setResult(null);
+                        param.setResult(null);
                     }
                 }
             });
@@ -200,14 +199,14 @@ public final class DialogInterceptHook {
                 // Hook show(FragmentManager, String)
                 for (Method m : clazz.getDeclaredMethods()) {
                     if ("show".equals(m.getName())) {
-                        Pine.hook(m, new MethodHook() {
+                        XposedBridge.hookMethod(m, new XC_MethodHook() {
                             @Override
-                            public void beforeCall(Pine.CallFrame callFrame) {
-                                Object fragment = callFrame.thisObject;
+                            public void beforeHookedMethod(MethodHookParam param) {
+                                Object fragment = param.thisObject;
                                 if (shouldBlockDialogFragment(fragment)) {
                                     Log.i(TAG, "Blocking DialogFragment: " + fragment.getClass().getName());
                                     // Cancel the show by setting result
-                                    callFrame.setResult(null);
+                                    param.setResult(null);
                                 }
                             }
                         });
